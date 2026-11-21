@@ -7,6 +7,9 @@
 ## SavedVariables: ScoutDB
 ## X-License: GPL-3.0-or-later (données de butin dérivées de cmangos classic-db)
 ## IconTexture: Interface\Icons\INV_Misc_Spyglass_02
+## AddonCompartmentFunc: Scout_Compartment
+## AddonCompartmentFuncOnEnter: Scout_CompartmentEnter
+## AddonCompartmentFuncOnLeave: Scout_CompartmentLeave
 
 Core.lua
 Prices.lua
@@ -35,3 +38,4 @@ UI\Window.lua
 UI\EquipTab.lua
 UI\CraftTab.lua
 UI\FarmTab.lua
+UI\MinimapButton.lua

@@ -21,7 +21,7 @@ local function ReagentCost(r)
     return total, missing
 end
 
--- Tendance de l'offre : quantité aujourd'hui vs moyenne des jours précédents.
+-- Tendance de l'offre : quantité au dernier scan vs moyenne des scans précédents.
 local function Trend(id)
     local h = ns.Prices.History(id)
     if #h < 2 then return nil end

@@ -4,7 +4,8 @@
 --   equip  = { lookahead, budget, bestOnly, weights, roles }      onglet Équipement
 --   craft  = { recipes, trainer, patterns, chars }                 onglet Métiers
 --   farm   = { obs, seen }                                         onglet Farm (butin observé)
---   market = { t, prices[itemID] = { p, q }, hist[itemID] = {...} } scan HdV partagé
+--   market = { t, n, prices[itemID] = { p, q }, hist[itemID] = {...}, names[itemID] } scan HdV partagé
+--            (n = objets vus au dernier scan, names = nom de tout objet vu)
 --   vendor = { [itemID] = prix marchand }                          vu chez les marchands
 --   ui     = { tab }
 --   log    = journal de la session (lisible sur disque après /reload)
@@ -63,7 +64,7 @@ local DEFAULTS = {
     equip = { lookahead = 0, budget = 0, bestOnly = true, weights = {}, roles = {} },
     craft = { recipes = {}, trainer = {}, patterns = {}, chars = {} },
     farm = { obs = {}, seen = {} },
-    market = { prices = {}, hist = {} },
+    market = { prices = {}, hist = {}, names = {} },
     vendor = {},
     ui = { tab = 1 },
 }

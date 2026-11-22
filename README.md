@@ -10,5 +10,7 @@ Addon WoW Forever (client 16001), fusion d'UpgradeScout, CraftScout et FarmScout
 Données : `Farm/Loot.lua` est généré par `python3 -I tools/build_loot.py ClassicDB.sql.gz Farm/Loot.lua`
 depuis [cmangos classic-db](https://github.com/cmangos/classic-db). Monstres via l'API publique de QuestieDB,
 prix de secours via Auctionator. `tools/migrate.lua` reprend les sauvegardes des trois anciens addons.
+`lua tools/export.lua <SavedVariables/Scout.lua> historique.csv` exporte l'historique HdV en CSV
+(`item_id,name,timestamp,datetime,price,quantity`, un relevé par scan, prix en cuivre).
 
 Licence : GPL-3.0-or-later.

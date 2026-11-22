@@ -14,7 +14,7 @@ par l'outil Rust compagnon `../scout-rs` (voir son `CLAUDE.md`).
   la limite de requêtes (`IsThrottledMessageSystemReady`), aucune action automatique (achat, vente, fabrication).
 
 ## Installation et fichiers du jeu
-- Ce dossier est **lié** dans le jeu : `…/_forever_/Interface/AddOns/Scout -> ~/dev/outils-jeux/wow/Scout`.
+- Ce dossier est **lié** dans le jeu : `…/_forever_/Interface/AddOns/Scout -> ~/dev/outils-jeux/wow/scout-addon`.
   Ne rien y mettre de lourd (pas de build, pas de `target/`) : le projet Rust vit à côté, dans `../scout-rs`.
 - Jeu sous Wine : `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/`.
   SavedVariables : `WTF/Account/<compte>/SavedVariables/Scout.lua` (variable `ScoutDB`).
@@ -85,4 +85,4 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ## Style
 - Code, commentaires et textes affichés en **français** ; fichiers courts.
 - Commits : sujet en français, phrase courte avec majuscule (ex. « Historique HdV horodaté, export CSV et scan
-  protégé »), corps qui explique le pourquoi. Dépôt privé `github.com/Darkrizen7/Scout`, branche `master`.
+  protégé »), corps qui explique le pourquoi. Dépôt privé `github.com/Darkrizen7/scout-addon`, branche `master`.

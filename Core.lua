@@ -125,6 +125,7 @@ local HELP = {
     "/scout role [clé|auto] — rôle pour les poids",
     "/scout test — Agilité / PA à distance / crit (écart depuis le dernier test)",
     "/scout reset — poids par défaut",
+    "/way #<n° de carte> <x> <y> [nom] — point sur la carte (copié depuis scout-rs)",
 }
 
 SLASH_SCOUT1 = "/scout"
@@ -133,3 +134,49 @@ SlashCmdList.SCOUT = function(msg)
     if commands[cmd] then return commands[cmd](a, b) end
     for _, line in ipairs(HELP) do ns.Print(line) end
 end
+
+---------------------------------------------------------------------------
+-- Point sur la carte : « /way #1431 25.1 38.2 Nom » (n° de carte UiMap, coordonnées en %),
+-- la syntaxe de TomTom, copiée depuis scout-rs. Si TomTom est installé, c'est sa commande qui sert.
+---------------------------------------------------------------------------
+local pendingWay
+
+function ns.SetWaypoint(msg)
+    local map, x, y, label = strtrim(msg or ""):match("^#?(%d+)%s+([%d%.,]+)%s+([%d%.,]+)%s*(.*)$")
+    map = tonumber(map)
+    x = x and tonumber((x:gsub(",", ".")))
+    y = y and tonumber((y:gsub(",", ".")))
+    if not (map and x and y) then
+        return ns.Print("Usage : /way #<n° de carte> <x> <y> [nom]")
+    end
+    if InCombatLockdown() then
+        pendingWay = msg
+        return ns.Print("Point posé à la fin du combat.")
+    end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(map) then
+        return ns.Print(("Impossible de mettre un point sur la carte %d."):format(map))
+    end
+    local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(map, x / 100, y / 100))
+    if not ok then return ns.Print("Le jeu a refusé le point.") end
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+    local info = C_Map.GetMapInfo(map)
+    ns.Print(("Point : %s%s (%.1f, %.1f)"):format(label ~= "" and label .. " — " or "",
+        info and info.name or tostring(map), x, y))
+end
+
+ns.On("PLAYER_REGEN_ENABLED", function()
+    if pendingWay then
+        local msg = pendingWay
+        pendingWay = nil
+        ns.SetWaypoint(msg)
+    end
+end)
+
+-- Enregistrée à la connexion, quand on sait si TomTom (chargé après Scout) a déjà sa commande /way.
+ns.On("PLAYER_LOGIN", function()
+    if SlashCmdList.TOMTOM_WAY then return end
+    SLASH_SCOUTWAY1 = "/way"
+    SlashCmdList.SCOUTWAY = ns.SetWaypoint
+end)

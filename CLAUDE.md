@@ -89,6 +89,12 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 - Test hors jeu : simuler les événements avec de fausses fonctions WoW (`GetLootSourceInfo`, `GetMoney`…) puis
   charger `Farm/Observed.lua` avec `loadfile(…)("Scout", ns)`.
 
+### Point sur la carte (`Core.lua`, `/way`)
+- `/way #<UiMap> <x> <y> [nom]` (syntaxe TomTom, coordonnées en %, virgule acceptée), texte copié depuis scout-rs :
+  `C_Map.SetUserWaypoint` puis `C_SuperTrack.SetSuperTrackedUserWaypoint` (pin natif suivi). En combat, posé à
+  `PLAYER_REGEN_ENABLED`. Enregistrée à `PLAYER_LOGIN` **seulement si TomTom n'a pas déjà `/way`** (TomTom se charge
+  après Scout). Action tapée par le joueur, rien d'automatique.
+
 ## Pièges connus
 - **`a and b or c` en Lua** : si `b` peut être `nil`/`false`, l'expression renvoie `c`. C'est ce qui a fait comparer
   le premier scan rapide au scan complet. Écrire un `if` explicite.

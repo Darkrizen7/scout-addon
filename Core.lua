@@ -5,8 +5,10 @@
 --   craft  = { recipes, trainer, patterns, chars }                 onglet Métiers
 --   farm   = { obs, seen }                                         onglet Farm (butin observé)
 --   market = { t, n, prices[itemID] = { p, q }, hist[itemID] = {...}, names[itemID] } scan HdV partagé
---            (n = objets vus au dernier scan, names = nom de tout objet vu)
+--            (n / nq, t / tq = objets vus et heure du dernier scan complet / rapide,
+--             names = nom de tout objet vu, class / classNames / subclassNames = sa catégorie)
 --   vendor = { [itemID] = prix marchand }                          vu chez les marchands
+--   merchants = { [npcID] = { name, zone, x, y, t, items = { [itemID] = { p = prix unitaire, l = stock limité } } } }
 --   ui     = { tab }
 --   log    = journal de la session (lisible sur disque après /reload)
 local ADDON, ns = ...
@@ -64,8 +66,9 @@ local DEFAULTS = {
     equip = { lookahead = 0, budget = 0, bestOnly = true, weights = {}, roles = {} },
     craft = { recipes = {}, trainer = {}, patterns = {}, chars = {} },
     farm = { obs = {}, seen = {} },
-    market = { prices = {}, hist = {}, names = {} },
+    market = { prices = {}, hist = {}, names = {}, class = {}, classNames = {}, subclassNames = {} },
     vendor = {},
+    merchants = {},
     ui = { tab = 1 },
 }
 
@@ -105,6 +108,7 @@ ns.commands = commands
 local HELP = {
     "/scout — ouvre/ferme la fenêtre",
     "/scout scan — scanne l'HdV (HdV ouvert)",
+    "/scout scan rapide — scanne seulement l'artisanat (plus court)",
     "/scout moi — score de l'équipement porté",
     "/scout poids [stat valeur] — poids des stats",
     "/scout role [clé|auto] — rôle pour les poids",

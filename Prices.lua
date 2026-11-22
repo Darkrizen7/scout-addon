@@ -76,17 +76,46 @@ function Prices.ItemValue(id)
     return value, source
 end
 
--- Prix marchands vus en jeu (achat).
+-- Le marchand ouvert : numéro de PNJ (tiré de son GUID « Creature-0-…-<npcID>-… »), nom, zone et position.
+local function CurrentMerchant()
+    local guid = UnitGUID("npc")
+    local npcID = guid and tonumber(select(6, strsplit("-", guid)))
+    if not npcID then return nil end
+    local merchant = { name = UnitName("npc"), t = time() }
+    local mapID = C_Map.GetBestMapForUnit("player")
+    if mapID then
+        local map = C_Map.GetMapInfo(mapID)
+        merchant.zone = map and map.name
+        local pos = C_Map.GetPlayerMapPosition(mapID, "player")
+        if pos then
+            local x, y = pos:GetXY()
+            merchant.x, merchant.y = math.floor(x * 1000 + 0.5) / 10, math.floor(y * 1000 + 0.5) / 10
+        end
+    end
+    return npcID, merchant
+end
+
+-- Prix marchands vus en jeu (achat) : prix unitaire par objet (vendor) et, par PNJ, ce qu'il vend (merchants).
 ns.On("MERCHANT_SHOW", function()
     C_Timer.After(0.3, function()
+        local npcID, merchant = CurrentMerchant()
+        local items = {}
         for i = 1, GetMerchantNumItems() do
             local info = C_MerchantFrame.GetItemInfo(i)
             local link = GetMerchantItemLink(i)
             local id = link and tonumber(link:match("item:(%d+)"))
             if id and info and not info.hasExtendedCost and (info.price or 0) > 0 then
-                ns.db.vendor[id] = info.price / math.max(info.stackCount or 1, 1)
+                local unit = info.price / math.max(info.stackCount or 1, 1)
+                ns.db.vendor[id] = unit
+                -- numAvailable : -1 = stock illimité, sinon exemplaires restants (stock limité).
+                items[id] = { p = unit, l = (info.numAvailable or -1) >= 0 or nil }
                 if ns.Craft then ns.Craft.RecordPattern(id, "SetMerchantItem", i) end
             end
+        end
+        if npcID and next(items) then
+            merchant.items = items
+            ns.db.merchants[npcID] = merchant
+            ns.Log(("Marchand %s (%d) : %d objets"):format(merchant.name or "?", npcID, GetMerchantNumItems()))
         end
     end)
 end)

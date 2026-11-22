@@ -2,7 +2,8 @@
 -- Usage : lua tools/export.lua <SavedVariables/Scout.lua> [sortie.csv]   (défaut : stdout)
 --         lua tools/export.lua <SavedVariables/Scout.lua> --names [sortie.csv]
 --
--- Avec --names : tous les noms connus (objets vus aux scans), colonnes item_id,name.
+-- Avec --names : tous les noms connus (objets vus aux scans),
+--   colonnes item_id,name,class_id,subclass_id,class,subclass (catégorie et libellés du client).
 -- Les numéros d'objet sont ceux du jeu, les mêmes que dans Auctionator et Forever Guide.
 --
 -- Colonnes : item_id,name,timestamp,datetime,price,quantity
@@ -18,6 +19,7 @@ local env = {}
 assert(loadfile(src, "t", env))()
 local market = assert(env.ScoutDB and env.ScoutDB.market, "pas de ScoutDB.market dans " .. src)
 local hist, names = market.hist or {}, market.names or {}
+local classes, classNames, subclassNames = market.class or {}, market.classNames or {}, market.subclassNames or {}
 
 local function field(v)
     if v == nil then return "" end
@@ -32,8 +34,13 @@ table.sort(ids)
 
 local out = dest and assert(io.open(dest, "w")) or io.stdout
 if namesOnly then
-    out:write("item_id,name\n")
-    for _, id in ipairs(ids) do out:write(id, ",", field(names[id]), "\n") end
+    out:write("item_id,name,class_id,subclass_id,class,subclass\n")
+    for _, id in ipairs(ids) do
+        local key = classes[id]
+        local classID, subClassID = key and key // 100, key and key % 100
+        out:write(table.concat({ id, field(names[id]), field(classID), field(subClassID),
+            field(classNames[classID or -1]), field(subclassNames[key or -1]) }, ","), "\n")
+    end
     if out ~= io.stdout then out:close() end
     io.stderr:write(("%d noms\n"):format(#ids))
     return

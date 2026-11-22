@@ -6,15 +6,22 @@ local _, ns = ...
 local Scan = {}
 ns.Scan = Scan
 
-local RECIPE_CLASS = Enum.ItemClass and Enum.ItemClass.Recipe or 9
+local IC = Enum.ItemClass or {}
+local RECIPE_CLASS = IC.Recipe or 9
+-- Scan rapide : seulement ce qui sert à l'artisanat (composants, recettes, consommables fabriqués).
+local QUICK_CLASSES = { IC.Tradegoods or 7, RECIPE_CLASS, IC.Consumable or 0, IC.Reagent or 5, IC.Gem or 3 }
+local QUICK = {}
+for _, classID in ipairs(QUICK_CLASSES) do QUICK[classID] = true end
 local HISTORY_DAYS = 21   -- durée de conservation des relevés (chaque scan est gardé)
 
 local state = "idle"   -- idle | browsing | equip
+local quick = false    -- scan en cours limité à l'artisanat
 local sending = false  -- vrai pendant notre propre SendBrowseQuery
 local awaitingMore = false
 local seen, browseList, browseCount = {}, {}, 0
 
 function Scan.IsRunning() return state ~= "idle" end
+function Scan.IsQuick() return quick end
 
 local function Status(text)
     if ns.UI then ns.UI.SetStatus(text) end
@@ -63,7 +70,30 @@ end
 -- ce qui permet de nommer aussi leurs relevés. Les noms absents du cache client arrivent plus tard.
 local pendingNames = {}
 
+-- Catégorie de l'objet pour l'export : class[id] = classID * 100 + subClassID, et les libellés
+-- (langue du client) dans classNames[classID] / subclassNames[classID * 100 + subClassID].
+-- GetItemInfoInstant ne demande rien au serveur.
+local GetClassInfo = C_Item.GetItemClassInfo or GetItemClassInfo
+local GetSubClassInfo = C_Item.GetItemSubClassInfo or GetItemSubClassInfo
+
+local function RememberClass(id)
+    local m = ns.db.market
+    if m.class[id] then return end
+    local _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(id)
+    if not (classID and subClassID) then return end
+    local key = classID * 100 + subClassID
+    m.class[id] = key
+    if not m.classNames[classID] then m.classNames[classID] = GetClassInfo(classID) end
+    if not m.subclassNames[key] then m.subclassNames[key] = GetSubClassInfo(classID, subClassID) end
+end
+
+-- Objets nommés avant l'enregistrement des catégories : complétés au chargement.
+ns.OnInit(function()
+    for id in pairs(ns.db.market.names) do RememberClass(id) end
+end)
+
 local function RememberName(id)
+    RememberClass(id)
     local names = ns.db.market.names
     if names[id] then return end
     local name = C_Item.GetItemInfo(id)
@@ -85,13 +115,33 @@ end)
 -- recherche : on ne l'enregistre pas (sinon tous les objets suivis passeraient à « 0 en vente »).
 local MIN_RATIO = 0.5
 
+-- Objet couvert par le scan en cours (tout, ou les classes d'artisanat pour un scan rapide).
+local function InScope(id)
+    if not quick then return true end
+    local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(id)
+    return QUICK[classID] == true
+end
+
+-- Nombre d'objets vus au dernier scan du même type (m.n : complet, m.nq : rapide).
+local function PreviousCount(m)
+    if quick then return m.nq end   -- pas de « quick and m.nq or m.n » : m.nq vaut nil au premier scan rapide
+    return m.n
+end
+
 local function Store()
     local want, m, now = Wanted(), ns.db.market, time()
-    if m.n and browseCount < m.n * MIN_RATIO then
+    local previous = PreviousCount(m)
+    if previous and browseCount < previous * MIN_RATIO then
         return false
     end
     local kept = 0
-    wipe(m.prices)
+    if quick then   -- les prix hors artisanat restent ceux du dernier scan complet
+        for id in pairs(m.prices) do
+            if InScope(id) then m.prices[id] = nil end
+        end
+    else
+        wipe(m.prices)
+    end
     for id, e in pairs(seen) do
         local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(id)
         if classID == RECIPE_CLASS and ns.Craft then ns.Craft.RecordPattern(id, "SetItemByID", id) end
@@ -103,9 +153,9 @@ local function Store()
         end
     end
     for id in pairs(want) do   -- objets suivis absents de ce scan : 0 en vente
-        if m.hist[id] and not seen[id] then Record(m, id, { t = now, q = 0 }) end
+        if m.hist[id] and not seen[id] and InScope(id) then Record(m, id, { t = now, q = 0 }) end
     end
-    m.t, m.n = now, browseCount
+    if quick then m.tq, m.nq = now, browseCount else m.t, m.n = now, browseCount end
     ns.Prices.SetSession(seen)
     ns.Log(("Prix enregistrés : %d objets suivis sur %d vus"):format(kept, browseCount))
     return true
@@ -149,7 +199,10 @@ local function Continue()
     if C_AuctionHouse.HasFullBrowseResults() then
         if not Store() then
             return Abort(("seulement %d objets vus contre %d au scan précédent."):format(
-                browseCount, ns.db.market.n))
+                browseCount, PreviousCount(ns.db.market)))
+        end
+        if quick then
+            return Finish(("Scan rapide terminé : %d objets d'artisanat à l'HdV."):format(browseCount))
         end
         state = "equip"
         ns.Equip.Evaluate(browseList, function(count)
@@ -163,7 +216,8 @@ local function Continue()
     end
 end
 
-function Scan.Start()
+-- mode "rapide" : seulement l'artisanat (beaucoup moins de pages, pas d'analyse d'équipement).
+function Scan.Start(mode)
     if not (AuctionHouseFrame and AuctionHouseFrame:IsShown()) then
         return ns.Print("Ouvre l'hôtel des ventes pour scanner.")
     end
@@ -173,9 +227,15 @@ function Scan.Start()
     end
     wipe(seen) wipe(browseList)
     browseCount, awaitingMore, state = 0, false, "browsing"
-    Status("Lecture de l'HdV…")
+    quick = mode == "rapide"
+    local classes = {}
+    if quick then
+        for _, classID in ipairs(QUICK_CLASSES) do classes[#classes + 1] = { classID = classID } end
+    end
+    Status(quick and "Lecture de l'HdV (artisanat)…" or "Lecture de l'HdV…")
+    if ns.UI then ns.UI.UpdateScanButton() end
     sending = true
-    C_AuctionHouse.SendBrowseQuery({ searchString = "", sorts = {}, filters = {}, itemClassFilters = {} })
+    C_AuctionHouse.SendBrowseQuery({ searchString = "", sorts = {}, filters = {}, itemClassFilters = classes })
     sending = false
 end
 

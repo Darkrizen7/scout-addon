@@ -66,8 +66,8 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
   `classNames` / `subclassNames` (libellés du client). Mêmes numéros d'objet qu'Auctionator et Forever Guide.
 - `t, n` / `tq, nq` : heure et nombre d'objets du dernier scan complet / rapide (bouton vert < 20 min).
 - `tools/export.lua` est le contrat avec `scout-rs` : colonnes `item_id,name,timestamp,datetime,price,quantity`
-  (et `item_id,name,class_id,subclass_id,class,subclass` avec `--names`). Changer ce format = changer
-  `scout-rs/scout-sources/src/import.rs` en même temps.
+  (et `item_id,name,class_id,subclass_id,class,subclass` avec `--names` ; butin avec `--loot`, voir plus bas).
+  Changer ce format = changer `scout-rs/scout-sources/src/import.rs` en même temps.
 
 ### Marchands (`Prices.lua`)
 - À chaque ouverture d'un marchand (`MERCHANT_SHOW`) : `vendor[itemID]` = prix unitaire (remise comprise) et

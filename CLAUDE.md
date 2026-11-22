@@ -3,7 +3,7 @@
 Addon pour **WoW Forever** : client moderne (`## Interface: 16001`, API `C_AuctionHouse`, `C_Item`, `C_TradeSkillUI`)
 sur du contenu Classic (objets, recettes, butin). Une fenêtre `/scout` à trois onglets (Équipement, Métiers, Farm),
 collée à l'HdV, et **un seul scan de l'HdV** partagé par les trois. L'historique des prix est étudié hors jeu
-par l'outil Rust compagnon `../scout-prix` (voir son `CLAUDE.md`).
+par l'outil Rust compagnon `../scout-rs` (voir son `CLAUDE.md`).
 
 ## Façon de travailler
 - Claude écrit le code ; l'utilisateur relit et teste en jeu. Réponses en français, tutoiement.
@@ -15,7 +15,7 @@ par l'outil Rust compagnon `../scout-prix` (voir son `CLAUDE.md`).
 
 ## Installation et fichiers du jeu
 - Ce dossier est **lié** dans le jeu : `…/_forever_/Interface/AddOns/Scout -> ~/dev/outils-jeux/wow/Scout`.
-  Ne rien y mettre de lourd (pas de build, pas de `target/`) : le projet Rust vit à côté, dans `../scout-prix`.
+  Ne rien y mettre de lourd (pas de build, pas de `target/`) : le projet Rust vit à côté, dans `../scout-rs`.
 - Jeu sous Wine : `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/`.
   SavedVariables : `WTF/Account/<compte>/SavedVariables/Scout.lua` (variable `ScoutDB`).
 - Après un changement de code : `/reload` en jeu (un fichier ajouté au `.toc` demande de relancer le jeu).
@@ -65,15 +65,15 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 - `names[itemID]` : nom de **tout** objet vu ; `class[itemID] = classID * 100 + subClassID` et
   `classNames` / `subclassNames` (libellés du client). Mêmes numéros d'objet qu'Auctionator et Forever Guide.
 - `t, n` / `tq, nq` : heure et nombre d'objets du dernier scan complet / rapide (bouton vert < 20 min).
-- `tools/export.lua` est le contrat avec `scout-prix` : colonnes `item_id,name,timestamp,datetime,price,quantity`
+- `tools/export.lua` est le contrat avec `scout-rs` : colonnes `item_id,name,timestamp,datetime,price,quantity`
   (et `item_id,name,class_id,subclass_id,class,subclass` avec `--names`). Changer ce format = changer
-  `scout-prix/src/import.rs` en même temps.
+  `scout-rs/scout-sources/src/import.rs` en même temps.
 
 ### Marchands (`Prices.lua`)
 - À chaque ouverture d'un marchand (`MERCHANT_SHOW`) : `vendor[itemID]` = prix unitaire (remise comprise) et
   `merchants[npcID] = { name, zone, x, y, t, items = { [itemID] = { p, l = stock limité } } }` (npcID tiré de
-  `UnitGUID("npc")`, position via `C_Map`). Objets payés en jetons ignorés. Exporté vers `scout-prix` par son
-  `tools/vendor_export.lua`.
+  `UnitGUID("npc")`, position via `C_Map`). Objets payés en jetons ignorés. Exporté vers `scout-rs` par son
+  `scout-sources/lua/vendor_export.lua`.
 
 ## Pièges connus
 - **`a and b or c` en Lua** : si `b` peut être `nil`/`false`, l'expression renvoie `c`. C'est ce qui a fait comparer

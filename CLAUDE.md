@@ -75,9 +75,29 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
   `UnitGUID("npc")`, position via `C_Map`). Objets payés en jetons ignorés. Exporté vers `scout-rs` par son
   `scout-sources/lua/vendor_export.lua`.
 
+### Butin observé (`Farm/Observed.lua`, `ScoutDB.farm`)
+- `obs[npcID] = { name, zone, kills, money, items = { [itemID] = { n, q } }, skins, skin = { [itemID] = { n, q } } }` :
+  `n` = corps où l'objet est tombé (→ chance réelle `n / kills`), `q` = quantité totale. Anciennes entrées
+  `items[id] = quantité` converties à la lecture.
+- Fouille ou récolte : une fenêtre de butin ouverte moins de 5 s après un sort de Dépeçage / Minage /
+  Herboristerie (`UNIT_SPELLCAST_SUCCEEDED`, ids Classic + noms) va dans `skins` / `skin`.
+- `seen.set[GUID] = { l, s, sk }` (300 derniers corps) : objets déjà comptés par corps, pour qu'une fenêtre
+  rouverte ne recompte rien. Nom du monstre : mémorisé en cible / au survol (`guid → nom`).
+- Exporté vers `scout-rs` par `tools/export.lua --loot` : colonnes
+  `npc_id,name,zone,kills,skins,kind,item_id,drops,quantity` (`kind` ∈ `loot | skin` ; ligne sans objet pour un
+  monstre sans butin). **Contrat** : le changer = changer `scout-rs/scout-sources/src/import.rs`.
+- Test hors jeu : simuler les événements avec de fausses fonctions WoW (`GetLootSourceInfo`, `GetMoney`…) puis
+  charger `Farm/Observed.lua` avec `loadfile(…)("Scout", ns)`.
+
 ## Pièges connus
 - **`a and b or c` en Lua** : si `b` peut être `nil`/`false`, l'expression renvoie `c`. C'est ce qui a fait comparer
   le premier scan rapide au scan complet. Écrire un `if` explicite.
+- **`tonumber(select(n, strsplit(…)))`** : `select` renvoie aussi les champs suivants, que `tonumber` prend pour
+  la base → « bad argument #2 ». Entourer de parenthèses `tonumber((select(…)))` ou passer par des variables locales.
+- **Valeurs secrètes** (en donjon notamment) : `UnitGUID`, `UnitName`, des liens de butin peuvent être « secrets » ;
+  les découper (`strsplit`), les convertir ou s'en servir de clé déclenche une erreur à chaque événement. Toujours
+  passer par `ns.NpcID(guid)` et tester `ns.IsSecret(v)` (Core.lua, via `issecretvalue`). Conséquence : en donjon,
+  le butin des monstres à GUID secret n'est pas enregistré.
 - `C_Item.GetItemInfo` peut renvoyer `nil` (objet pas en cache) : `RequestLoadItemDataByID` puis
   `GET_ITEM_INFO_RECEIVED`. `GetItemInfoInstant` (classe, sous-classe) ne dépend pas du cache.
 - Autres addons de l'utilisateur à ménager : Auctionator, Forever Guide (scans HdV), QuestieDB (données monstres).

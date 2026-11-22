@@ -3,7 +3,7 @@
 -- ScoutDB :
 --   equip  = { lookahead, budget, bestOnly, weights, roles }      onglet Équipement
 --   craft  = { recipes, trainer, patterns, chars }                 onglet Métiers
---   farm   = { obs, seen }                                         onglet Farm (butin observé)
+--   farm   = { obs, seen }                                         onglet Farm (butin observé, format dans Farm/Observed.lua)
 --   market = { t, n, prices[itemID] = { p, q }, hist[itemID] = {...}, names[itemID] } scan HdV partagé
 --            (n / nq, t / tq = objets vus et heure du dernier scan complet / rapide,
 --             names = nom de tout objet vu, class / classNames / subclassNames = sa catégorie)
@@ -85,6 +85,17 @@ local function Fill(target, defaults)
             Fill(target[k], v)
         end
     end
+end
+
+-- Valeurs « secrètes » (client moderne, en instance notamment) : un addon ne peut ni les lire ni les découper.
+local issecret = issecretvalue or function() return false end
+function ns.IsSecret(v) return v ~= nil and issecret(v) end
+
+-- Numéro de PNJ tiré d'un GUID « Creature-0-…-<npcID>-… » ; nil si ce n'est pas un PNJ ou si le GUID est secret.
+function ns.NpcID(guid)
+    if type(guid) ~= "string" or issecret(guid) then return nil end
+    local ok, kind, _, _, _, _, id = pcall(strsplit, "-", guid)
+    if ok and kind == "Creature" then return tonumber(id) end
 end
 
 local inits = {}

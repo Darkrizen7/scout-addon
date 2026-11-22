@@ -78,10 +78,11 @@ end
 
 -- Le marchand ouvert : numéro de PNJ (tiré de son GUID « Creature-0-…-<npcID>-… »), nom, zone et position.
 local function CurrentMerchant()
-    local guid = UnitGUID("npc")
-    local npcID = guid and tonumber(select(6, strsplit("-", guid)))
+    local npcID = ns.NpcID(UnitGUID("npc"))
     if not npcID then return nil end
-    local merchant = { name = UnitName("npc"), t = time() }
+    local name = UnitName("npc")
+    if ns.IsSecret(name) then name = nil end
+    local merchant = { name = name, t = time() }
     local mapID = C_Map.GetBestMapForUnit("player")
     if mapID then
         local map = C_Map.GetMapInfo(mapID)

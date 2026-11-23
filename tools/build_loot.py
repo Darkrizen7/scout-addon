@@ -195,6 +195,7 @@ def main(src, dst):
 
     item_rows = {int(r["entry"]): r for r in t["item_template"]}
     with open(dst, "w", encoding="utf-8") as out:
+        out.write("-- SPDX-License-Identifier: GPL-3.0-or-later\n")
         out.write("-- GÉNÉRÉ par tools/build_loot.py depuis cmangos classic-db (GPL-3.0). Ne pas éditer.\n")
         out.write("-- C[npcID] = { or moyen (cuivre), {objet, espérance, ...}, {référence, multiplicateur, ...}, table de dépeçage }\n")
         out.write("local _, ns = ...\nlocal D = {}\nns.LootData = D\n")

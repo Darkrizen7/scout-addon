@@ -2,10 +2,10 @@
 ## Title: Scout
 ## Notes: Équipement à acheter, recettes à apprendre, où farmer : tout depuis l'HdV. /scout
 ## Author: Darkrizen
-## Version: 1.0.0
+## Version: 0.1.0
 ## OptionalDeps: QuestieDB, Auctionator
 ## SavedVariables: ScoutDB
-## X-License: GPL-3.0-or-later (données de butin dérivées de cmangos classic-db)
+## X-License: MIT ; Farm/Loot.lua : GPL-3.0-or-later (dérivé de cmangos classic-db)
 ## IconTexture: Interface\Icons\INV_Misc_Spyglass_02
 ## AddonCompartmentFunc: Scout_Compartment
 ## AddonCompartmentFuncOnEnter: Scout_CompartmentEnter

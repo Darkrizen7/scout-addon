@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: GPL-3.0-or-later
 -- GÉNÉRÉ par tools/build_loot.py depuis cmangos classic-db (GPL-3.0). Ne pas éditer.
 -- C[npcID] = { or moyen (cuivre), {objet, espérance, ...}, {référence, multiplicateur, ...}, table de dépeçage }
 local _, ns = ...

@@ -113,4 +113,6 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ## Style
 - Code, commentaires et textes affichés en **français** ; fichiers courts.
 - Commits : sujet en français, phrase courte avec majuscule (ex. « Historique HdV horodaté, export CSV et scan
-  protégé »), corps qui explique le pourquoi. Dépôt privé `github.com/Darkrizen7/scout-addon`, branche `master`.
+  protégé »), corps qui explique le pourquoi. Dépôt public `github.com/Darkrizen7/scout-addon`, branche `master`.
+- Versions : tag `vX.Y.Z` posé à la demande de l'utilisateur, identique à `## Version` de `Scout.toc` (à monter
+  avant, commit à part). Licence MIT, sauf `Farm/Loot.lua` (données cmangos) : GPL-3.0-or-later.

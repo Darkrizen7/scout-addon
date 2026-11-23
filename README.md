@@ -18,4 +18,5 @@ prix de secours via Auctionator. `tools/migrate.lua` reprend les sauvegardes des
 (`item_id,name,timestamp,datetime,price,quantity`, un relevé par scan, prix en cuivre) ; `--names` les noms et
 catégories des objets vus, `--loot` le butin enregistré.
 
-Licence : GPL-3.0-or-later.
+Licence : MIT (`LICENSE`), sauf `Farm/Loot.lua`, dérivé de cmangos classic-db : GPL-3.0-or-later
+(`LICENSE-GPL-3.0`).

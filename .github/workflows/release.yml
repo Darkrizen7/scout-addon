@@ -1,0 +1,38 @@
+# Publie une Release avec Scout.zip quand un tag de version (v0.2.0, …) est poussé.
+# Rien ne tourne sur les pushs ordinaires : une version sort seulement quand un tag est poussé à la main.
+# scout-rs télécharge Scout.zip pour installer ou mettre à jour l'addon.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Le tag correspond à la version du .toc
+        run: |
+          version=$(sed -n 's/^## Version: *\([^[:space:]]*\).*/\1/p' Scout.toc)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Le tag $GITHUB_REF_NAME ne correspond pas à ## Version: $version de Scout.toc"
+            exit 1
+          fi
+
+      - name: Scout.zip
+        run: |
+          # Dossier Scout/ à la racine : se décompresse tel quel dans Interface/AddOns.
+          git archive --format=zip --prefix=Scout/ -o Scout.zip HEAD
+          sha256sum Scout.zip > Scout.zip.sha256
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" Scout.zip Scout.zip.sha256 \
+            --title "$GITHUB_REF_NAME" --generate-notes

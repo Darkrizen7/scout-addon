@@ -1,0 +1,5 @@
+# Left out of the release zip (git archive): only useful to work on the addon.
+CLAUDE.md export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+.github export-ignore

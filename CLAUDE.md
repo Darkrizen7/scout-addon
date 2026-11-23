@@ -100,6 +100,8 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
   le premier scan rapide au scan complet. Écrire un `if` explicite.
 - **`tonumber(select(n, strsplit(…)))`** : `select` renvoie aussi les champs suivants, que `tonumber` prend pour
   la base → « bad argument #2 ». Entourer de parenthèses `tonumber((select(…)))` ou passer par des variables locales.
+- **Ramassage rapide** (Leatrix Plus « Faster auto loot », installé chez l'utilisateur) : tout est ramassé à
+  `LOOT_READY`, avant `LOOT_OPENED`. Lire le butin dès `LOOT_READY` (Farm/Observed.lua), sinon la fenêtre est déjà vide.
 - **Valeurs secrètes** (en donjon notamment) : `UnitGUID`, `UnitName`, des liens de butin peuvent être « secrets » ;
   les découper (`strsplit`), les convertir ou s'en servir de clé déclenche une erreur à chaque événement. Toujours
   passer par `ns.NpcID(guid)` et tester `ns.IsSecret(v)` (Core.lua, via `issecretvalue`). Conséquence : en donjon,

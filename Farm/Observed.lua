@@ -24,7 +24,7 @@ local gatherNames = { ["Dépeçage"] = true, ["Minage"] = true, ["Herboristerie"
 local gatherIDs = {}
 for _, id in ipairs(GATHER_SPELLS) do gatherIDs[id] = true end
 
-local moneyStart, lootGuids, gatherAt
+local moneyStart, lootGuids, gatherAt, gathering
 local names, nameCount = {}, 0   -- GUID → nom, vus en cible ou au survol
 
 local function SpellName(id)
@@ -113,11 +113,16 @@ local function Add(list, itemID, qty, counted)
     v.q = v.q + qty
 end
 
-ns.On("LOOT_OPENED", function()
+-- Lu dès LOOT_READY : un ramassage rapide (Leatrix Plus « Faster auto loot », etc.) vide la fenêtre à cet
+-- événement, avant LOOT_OPENED. Relu à LOOT_OPENED par sécurité : un corps déjà compté ne l'est pas deux fois.
+-- L'état de la fenêtre (récolte ou fouille, or au départ) est fixé au premier des deux événements.
+local function Record()
     local obs, seen = ns.db.farm.obs, ns.db.farm.seen
-    local gathering = gatherAt and GetTime() - gatherAt < GATHER_WINDOW
-    gatherAt = nil
-    moneyStart, lootGuids = GetMoney(), {}
+    if not moneyStart then
+        gathering = gatherAt and GetTime() - gatherAt < GATHER_WINDOW
+        gatherAt = nil
+        moneyStart, lootGuids = GetMoney(), {}
+    end
     local zone = GetRealZoneText and GetRealZoneText()
     if ns.IsSecret(zone) then zone = nil end
     RememberName("target")
@@ -152,7 +157,10 @@ ns.On("LOOT_OPENED", function()
             end
         end
     end
-end)
+end
+
+ns.On("LOOT_READY", Record)
+ns.On("LOOT_OPENED", Record)
 
 -- L'or ramassé est réparti entre les corps fouillés de la fenêtre de butin.
 ns.On("LOOT_CLOSED", function()

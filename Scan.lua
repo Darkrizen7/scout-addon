@@ -56,6 +56,29 @@ local function EntryTime(e)
     return e.t or 0
 end
 
+-- HdV neutres (Gadgetzan, Baie-du-Butin, Long-guet) : reconnus à la carte où se trouve le joueur
+-- pendant le scan. Aucune faction de joueur ne peut y changer : seules ces trois zones en ont un.
+-- À VÉRIFIER EN JEU : UiMapID Classic de Tanaris, Strangleronce, Berceau-de-l'Hiver.
+local NEUTRAL_MAPS = { [1446] = true, [1434] = true, [1452] = true }
+
+-- Faction de l'HdV scanné : "Alliance", "Horde" ou "Neutral" (repli : faction du joueur).
+local function HouseFaction()
+    local ok, map = pcall(function() return C_Map and C_Map.GetBestMapForUnit("player") end)
+    if ok and map and NEUTRAL_MAPS[map] then return "Neutral" end
+    return UnitFactionGroup("player") or "Neutral"
+end
+
+-- Indice de l'HdV scanné dans market.houses (ajouté s'il manque) : les relevés ne portent que cet entier.
+local function HouseIndex(m)
+    m.houses = m.houses or {}
+    local realm, faction = GetRealmName(), HouseFaction()
+    for i, h in ipairs(m.houses) do
+        if h.realm == realm and h.faction == faction then return i end
+    end
+    m.houses[#m.houses + 1] = { realm = realm, faction = faction }
+    return #m.houses
+end
+
 -- Ajoute un relevé et oublie ceux de plus de HISTORY_DAYS jours.
 local function Record(m, id, entry)
     local h = m.hist[id] or {}
@@ -134,7 +157,7 @@ local function Store()
     if previous and browseCount < previous * MIN_RATIO then
         return false
     end
-    local kept = 0
+    local kept, house = 0, HouseIndex(m)
     if quick then   -- les prix hors artisanat restent ceux du dernier scan complet
         for id in pairs(m.prices) do
             if InScope(id) then m.prices[id] = nil end
@@ -148,12 +171,12 @@ local function Store()
         RememberName(id)
         if want[id] or classID == RECIPE_CLASS then
             m.prices[id] = e
-            Record(m, id, { t = now, p = e.p, q = e.q })
+            Record(m, id, { t = now, p = e.p, q = e.q, a = house })
             kept = kept + 1
         end
     end
     for id in pairs(want) do   -- objets suivis absents de ce scan : 0 en vente
-        if m.hist[id] and not seen[id] and InScope(id) then Record(m, id, { t = now, q = 0 }) end
+        if m.hist[id] and not seen[id] and InScope(id) then Record(m, id, { t = now, q = 0, a = house }) end
     end
     if quick then m.tq, m.nq = now, browseCount else m.t, m.n = now, browseCount end
     ns.Prices.SetSession(seen)

@@ -12,11 +12,13 @@
 --   une ligne sans kind ni item_id pour un monstre sans objet (garde ses kills).
 -- Les numéros d'objet sont ceux du jeu, les mêmes que dans Auctionator et Forever Guide.
 --
--- Colonnes : item_id,name,timestamp,datetime,price,quantity
+-- Colonnes : item_id,name,timestamp,datetime,price,quantity,realm,faction
 --   timestamp : heure du scan, secondes Unix (UTC)
 --   datetime  : la même en heure locale, AAAA-MM-JJ HH:MM:SS
 --   price    : prix unitaire minimum en cuivre (vide si l'objet n'était pas en vente à ce scan)
 --   quantity : nombre d'exemplaires en vente (0 = absent de l'HdV)
+--   realm, faction : HdV scanné (market.houses[e.a]) ; faction = Alliance | Horde | Neutral ;
+--     vides pour les anciens relevés sans `a`
 local src = assert(arg[1], "usage : lua tools/export.lua <SavedVariables/Scout.lua> [--names | --loot] [sortie.csv]")
 local mode = (arg[2] == "--names" or arg[2] == "--loot") and arg[2] or nil
 local namesOnly = mode == "--names"
@@ -66,7 +68,7 @@ if mode == "--loot" then
 end
 
 local market = assert(env.ScoutDB and env.ScoutDB.market, "pas de ScoutDB.market dans " .. src)
-local hist, names = market.hist or {}, market.names or {}
+local hist, names, houses = market.hist or {}, market.names or {}, market.houses or {}
 local classes, classNames, subclassNames = market.class or {}, market.classNames or {}, market.subclassNames or {}
 
 local ids = {}
@@ -86,7 +88,7 @@ if namesOnly then
     io.stderr:write(("%d noms\n"):format(#ids))
     return
 end
-out:write("item_id,name,timestamp,datetime,price,quantity\n")
+out:write("item_id,name,timestamp,datetime,price,quantity,realm,faction\n")
 local rows = 0
 for _, id in ipairs(ids) do
     for _, e in ipairs(hist[id]) do
@@ -95,7 +97,9 @@ for _, id in ipairs(ids) do
             local y, mo, d = e.d:match("(%d+)-(%d+)-(%d+)")
             t = os.time({ year = tonumber(y), month = tonumber(mo), day = tonumber(d), hour = 12 })
         end
-        out:write(table.concat({ id, field(names[id]), t, os.date("%Y-%m-%d %H:%M:%S", t), field(e.p), e.q or 0 }, ","), "\n")
+        local house = e.a and houses[e.a] or {}
+        out:write(table.concat({ id, field(names[id]), t, os.date("%Y-%m-%d %H:%M:%S", t), field(e.p), e.q or 0,
+            field(house.realm), field(house.faction) }, ","), "\n")
         rows = rows + 1
     end
 end

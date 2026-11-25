@@ -62,10 +62,13 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ### Données de marché (`ScoutDB.market`)
 - `hist[itemID]` : relevés `{ t, p, q }` de **chaque scan** (plusieurs par jour), gardés 21 jours (`HISTORY_DAYS`).
   Les anciens relevés journaliers `{ d = "AAAA-MM-JJ" }` sont convertis à midi quand on y touche.
+- `houses[i] = { realm, faction }` : HdV scannés (dédupliqués) ; chaque relevé porte `a = i`. `faction` ∈
+  `Alliance | Horde | Neutral` ; HdV neutre détecté par la carte du joueur (`NEUTRAL_MAPS`, Scan.lua, IDs à
+  vérifier en jeu). Anciens relevés sans `a` : inchangés. `MIN_RATIO` et `prices` restent communs à tous les HdV.
 - `names[itemID]` : nom de **tout** objet vu ; `class[itemID] = classID * 100 + subClassID` et
   `classNames` / `subclassNames` (libellés du client). Mêmes numéros d'objet qu'Auctionator et Forever Guide.
 - `t, n` / `tq, nq` : heure et nombre d'objets du dernier scan complet / rapide (bouton vert < 20 min).
-- `tools/export.lua` est le contrat avec `scout-rs` : colonnes `item_id,name,timestamp,datetime,price,quantity`
+- `tools/export.lua` est le contrat avec `scout-rs` : colonnes `item_id,name,timestamp,datetime,price,quantity,realm,faction`
   (et `item_id,name,class_id,subclass_id,class,subclass` avec `--names` ; butin avec `--loot`, voir plus bas).
   Changer ce format = changer `scout-rs/scout-sources/src/import.rs` en même temps.
 

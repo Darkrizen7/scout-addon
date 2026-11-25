@@ -2,7 +2,7 @@
 ## Title: Scout
 ## Notes: Équipement à acheter, recettes à apprendre, où farmer : tout depuis l'HdV. /scout
 ## Author: Darkrizen
-## Version: 0.1.0
+## Version: 0.2.0
 ## OptionalDeps: QuestieDB, Auctionator
 ## SavedVariables: ScoutDB
 ## X-License: MIT ; Farm/Loot.lua : GPL-3.0-or-later (dérivé de cmangos classic-db)

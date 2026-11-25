@@ -39,7 +39,7 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 | `Core.lua` | `ns`, `ScoutDB` (défauts, schéma documenté en tête), `ns.On` (plusieurs gestionnaires par événement), `ns.OnInit`, `ns.Log`, commandes `/scout`. |
 | `Prices.lua` | Prix partagés : scan Scout (persisté), Auctionator en secours, prix marchands ; relevé des marchands ouverts (PNJ, position, objets). |
 | `Scan.lua` | Scan de l'HdV : complet ou rapide (artisanat), enregistrement des prix / historique / noms / catégories, garde-fous. |
-| `Equip/` | Poids de stats, gain vs équipé, analyse des objets du scan. |
+| `Equip/` | Poids de stats, gain vs équipé (rien n'est proposé pour un emplacement dont l'objet porté a des stats inconnues, ni pour un objet déjà porté ; doublon d'anneau/bijou/arme seulement s'il n'est pas « Unique »), analyse des objets du scan. |
 | `Craft/` | Recettes (fenêtre de métier), sources d'apprentissage, rentabilité. |
 | `Farm/` | Valeur par kill : `Loot.lua` **généré** (`tools/build_loot.py`, ne pas éditer), butin observé. |
 | `UI/` | Fenêtre à onglets, listes, bouton de minimap ; boutons « Scanner l'HdV » / « Rapide » orange pendant un scan, verts si le dernier date de moins de 20 min. |

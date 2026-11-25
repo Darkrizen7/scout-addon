@@ -95,17 +95,48 @@ end
 ---------------------------------------------------------------------------
 -- Instantané de l'équipement porté (recalculé à chaque scan)
 ---------------------------------------------------------------------------
-local worn = {}   -- [slot] = { stats, twoHand }
+local worn = {}   -- [slot] = { stats, twoHand, link, id, unknown }
+
+-- Stats d'un objet porté. Renvoie stats, connu. Des stats nil sur un objet pas en cache veulent
+-- dire « inconnues » (jamais « vaut 0 ») ; un objet en cache sans stat reconnue est connu et vide.
+local function ReadWorn(link)
+    local stats = ns.Stats.FromLink(link)
+    if stats then return stats, true end
+    local id = C_Item.GetItemInfoInstant(link)
+    local cached = id and C_Item.IsItemDataCachedByID and C_Item.IsItemDataCachedByID(id)
+    return {}, cached == true
+end
 
 function Equipped.Refresh()
     wipe(worn)
     for slot in pairs(SLOT_NAMES) do
         local link = GetInventoryItemLink("player", slot)
         if link then
-            local _, _, _, loc = C_Item.GetItemInfoInstant(link)
-            worn[slot] = { stats = ns.Stats.FromLink(link) or {}, twoHand = loc == "INVTYPE_2HWEAPON", link = link }
+            local id, _, _, loc = C_Item.GetItemInfoInstant(link)
+            local stats, known = ReadWorn(link)
+            worn[slot] = {
+                stats = stats, unknown = not known, id = id, link = link,
+                twoHand = loc == "INVTYPE_2HWEAPON",
+            }
+            if not known and Item and Item.CreateFromItemLink then
+                local item = Item:CreateFromItemLink(link)
+                item:ContinueOnItemLoad(function()
+                    if worn[slot] and worn[slot].link == link then
+                        worn[slot].stats, worn[slot].unknown = ReadWorn(link)
+                    end
+                end)
+            end
         end
     end
+end
+
+-- Relit les stats d'un objet porté encore inconnu (les données ont pu arriver depuis le Refresh).
+local function Resolve(item)
+    if item and item.unknown then
+        local stats, known = ReadWorn(item.link)
+        item.stats, item.unknown = stats, not known
+    end
+    return item
 end
 
 local function WornScore(slot, w, part)
@@ -113,37 +144,94 @@ local function WornScore(slot, w, part)
     return item and ns.Stats.Score(item.stats, w, part) or 0
 end
 
--- Gain de l'objet vs l'équipement porté. Renvoie gain, slotLabel (ou nil si non comparable).
-function Equipped.Gain(stats, loc, w)
+-- Vrai si un des emplacements porte un objet aux stats encore inconnues.
+local function AnyUnknown(...)
+    for _, slot in ipairs({ ... }) do
+        if Resolve(worn[slot]) and worn[slot].unknown then return true end
+    end
+    return false
+end
+
+local function SuffixOf(link)
+    return tonumber((select(8, strsplit(":", link or "")))) or 0
+end
+
+-- Id de l'objet porté dans l'emplacement, seulement si c'est le même objet (même id et même
+-- suffixe) que l'objet évalué ; nil sinon. L'appelant le compare à l'id évalué.
+local function WornId(slot, evalLink)
+    local item = worn[slot]
+    if not item then return nil end
+    if evalLink and SuffixOf(item.link) ~= SuffixOf(evalLink) then return nil end
+    return item.id
+end
+
+local uniqueTip
+-- Vrai si l'objet porte la ligne « Unique » (impossible à porter en double).
+local function IsUnique(link)
+    if not uniqueTip then
+        uniqueTip = CreateFrame("GameTooltip", "ScoutEquipUniqueTip", nil, "GameTooltipTemplate")
+    end
+    uniqueTip:SetOwner(UIParent, "ANCHOR_NONE")
+    uniqueTip:ClearLines()
+    uniqueTip:SetHyperlink(link)
+    local unique = ITEM_UNIQUE or "Unique"
+    for i = 1, uniqueTip:NumLines() do
+        local fs = _G["ScoutEquipUniqueTipTextLeft" .. i]
+        local text = fs and fs:GetText()
+        if text and text:sub(1, #unique) == unique then return true end
+    end
+    return false
+end
+
+-- Gain de l'objet vs l'équipement porté. Renvoie gain, slotLabel (ou nil si non comparable,
+-- ou si un emplacement concerné porte un objet aux stats encore inconnues, ou si l'objet est
+-- déjà porté). id et link : objet évalué (garde-fou « même objet »).
+function Equipped.Gain(stats, loc, w, id, link)
     local slot = SIMPLE[loc]
     if slot then
+        if AnyUnknown(slot) or (id and WornId(slot, link) == id) then return nil end
         return ns.Stats.Score(stats, w, "main") - WornScore(slot, w, "main"), SLOT_NAMES[slot]
     end
 
     local mhTwoHand = worn[16] and worn[16].twoHand
     if loc == "INVTYPE_FINGER" or loc == "INVTYPE_TRINKET" then
         local a, b = (loc == "INVTYPE_FINGER") and 11 or 13, (loc == "INVTYPE_FINGER") and 12 or 14
-        local weakest = math.min(WornScore(a, w, "main"), WornScore(b, w, "main"))
-        return ns.Stats.Score(stats, w, "main") - weakest, SLOT_NAMES[a]
+        if AnyUnknown(a, b) then return nil end
+        local sa, sb = WornScore(a, w, "main"), WornScore(b, w, "main")
+        -- Jamais de comparaison avec un emplacement portant le même objet ; un objet identique
+        -- dans l'autre emplacement ne compte que s'il n'est pas Unique.
+        local same = id and (WornId(a, link) == id or WornId(b, link) == id)
+        if same then
+            local weakIsSame = (sa <= sb and WornId(a, link) == id) or (sb <= sa and WornId(b, link) == id)
+            if weakIsSame or IsUnique(link or ("item:" .. id)) then return nil end
+        end
+        return ns.Stats.Score(stats, w, "main") - math.min(sa, sb), SLOT_NAMES[a]
     elseif loc == "INVTYPE_2HWEAPON" then
+        if AnyUnknown(16, 17) or (id and (WornId(16, link) == id)) then return nil end
         local current = WornScore(16, w, "main") + WornScore(17, w, "off")
         return ns.Stats.Score(stats, w, "main") - current, "Deux mains"
     elseif loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONMAINHAND" then
-        local best = ns.Stats.Score(stats, w, "main") - WornScore(16, w, "main")
-        local label = SLOT_NAMES[16]
-        if loc == "INVTYPE_WEAPON" and CanDualWield() and not mhTwoHand then
+        if AnyUnknown(16) then return nil end
+        local best, label
+        local inMain, inOff = id and WornId(16, link) == id, id and WornId(17, link) == id
+        if not inMain then
+            best, label = ns.Stats.Score(stats, w, "main") - WornScore(16, w, "main"), SLOT_NAMES[16]
+        end
+        if loc == "INVTYPE_WEAPON" and CanDualWield() and not mhTwoHand and not AnyUnknown(17)
+            and not inOff and not (inMain and IsUnique(link or ("item:" .. id))) then
             local off = ns.Stats.Score(stats, w, "off") - WornScore(17, w, "off")
-            if off > best then best, label = off, SLOT_NAMES[17] end
+            if not best or off > best then best, label = off, SLOT_NAMES[17] end
         end
         return best, label
     elseif loc == "INVTYPE_WEAPONOFFHAND" then
-        if mhTwoHand or not CanDualWield() then return nil end
+        if mhTwoHand or not CanDualWield() or AnyUnknown(17) or (id and WornId(17, link) == id) then return nil end
         return ns.Stats.Score(stats, w, "off") - WornScore(17, w, "off"), SLOT_NAMES[17]
     elseif loc == "INVTYPE_SHIELD" or loc == "INVTYPE_HOLDABLE" then
-        if mhTwoHand then return nil end
+        if mhTwoHand or AnyUnknown(17) or (id and WornId(17, link) == id) then return nil end
         return ns.Stats.Score(stats, w, "main") - WornScore(17, w, "main"), SLOT_NAMES[17]
     elseif loc == "INVTYPE_RANGED" or loc == "INVTYPE_RANGEDRIGHT" or loc == "INVTYPE_THROWN"
         or loc == "INVTYPE_RELIC" then
+        if AnyUnknown(18) or (id and WornId(18, link) == id) then return nil end
         return ns.Stats.Score(stats, w, "ranged") - WornScore(18, w, "ranged"), SLOT_NAMES[18]
     end
     return nil

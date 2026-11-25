@@ -42,7 +42,7 @@ function Equip.Stop() Done() end
 
 local function AddResult(r, link, stats, price)
     local _, _, _, loc = C_Item.GetItemInfoInstant(r.itemKey.itemID)
-    local gain, slotLabel = ns.Equipped.Gain(stats, loc, ctx.w)
+    local gain, slotLabel = ns.Equipped.Gain(stats, loc, ctx.w, r.itemKey.itemID, link)
     if not gain or gain <= 0.05 then return end
     local name, fullLink, quality, _, _, _, _, _, _, icon = C_Item.GetItemInfo(link)
     if not name then name, fullLink, quality, _, _, _, _, _, _, icon = C_Item.GetItemInfo(r.itemKey.itemID) end

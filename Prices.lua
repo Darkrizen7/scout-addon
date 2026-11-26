@@ -46,6 +46,8 @@ local function Today()
     return math.floor(time({ year = t.year, month = t.month, day = t.day, hour = 12 }) / 86400)
 end
 
+function Prices.Today() return Today() end
+
 function Prices.Daily(id)
     local h = ScoutHistory
     local s = h and h.format == 1 and h.prices and h.prices[id]

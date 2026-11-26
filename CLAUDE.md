@@ -119,3 +119,28 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
   protégé »), corps qui explique le pourquoi. Dépôt public `github.com/Darkrizen7/scout-addon`, branche `master`.
 - Versions : tag `vX.Y.Z` posé à la demande de l'utilisateur, identique à `## Version` de `Scout.toc` (à monter
   avant, commit à part). Licence MIT, sauf `Farm/Loot.lua` (données cmangos) : GPL-3.0-or-later.
+
+## Tickets (pman)
+
+<!-- pman init: début (bloc géré par `pman init`) -->
+- Workspace pman : `wow` (`PMAN_WORKSPACE`, posé par `.claude/settings.json`) ; serveur http://127.0.0.1:8090.
+- Projets : `ADDON`.
+- Lien d'un ticket : http://127.0.0.1:8090/wow/projects/ADDON/issues/ADDON-42
+- Workflow : skill `/pman` (`.claude/skills/pman/`) et agent `dev` (`.claude/agents/dev.md`), installés par `pman init` ; CLI : `pman --help`.
+<!-- pman init: fin -->
+- Propre à l'addon (hors du bloc géré) :
+  - Comptes : Claude agit uniquement avec le bot `claude` ; l'utilisateur est `arthur`. Label **Feature** ou **Fix**
+    posé à la création. Une branche par ticket depuis `master` (`ADDON-42-description-courte`), clé en tête du
+    sujet des commits (`ADDON-42 : …`), PR vers `master` (corps : résumé, comment tester, `pman : ADDON-42 (<lien>)`),
+    relecture tracée en `gh pr comment`, fusion par Claude (`git merge --no-ff` en local, message
+    `Fusion de la PR #N : <titre>`, puis `git push origin master` et suppression de la branche). Jamais de `--force`.
+  - Dates des commits : jamais en semaine 9h–12h ni 14h–18h (heure de Paris) ; sinon `--date` et
+    `GIT_COMMITTER_DATE` juste après la plage.
+  - Vérifications (relecture et agent `dev`) : `luac -p` sur chaque fichier `.lua` modifié, aucune syntaxe Lua 5.2+
+    dans l'addon (voir « Vérifier hors jeu »), et `tools/export.lua` sur le vrai SavedVariables si l'export change.
+  - Claude ne lance pas le jeu : un ticket qui change le comportement en jeu finit en `agent request-validation`
+    (étapes précises : `/reload`, quoi cliquer, résultat attendu), pas en Done.
+  - Le format des CSV exportés est un contrat avec `../scout-rs` : un changement = un ticket `ADDON` et un ticket
+    `APP` liés par une relation, livrés ensemble.
+  - Dépôt **public** : rien de personnel dans les tickets cités, les PR ni les commits (pas de SavedVariables,
+    pas de nom de compte ni de personnage).

@@ -30,18 +30,36 @@ function Data.PatternTarget(name)
     return target and strtrim(target, " \t\194\160\226\128\175")
 end
 
--- Niveau de métier requis lu dans une infobulle (« Requiert Travail du cuir (90) »).
--- On accepte toute ligne « <préfixe de ITEM_REQ_SKILL> <métier> (<nombre>) ».
-local REQ_PREFIX = ITEM_REQ_SKILL and ITEM_REQ_SKILL:match("^(.-)%%") or "Requiert "
+-- Niveau de métier requis lu dans une infobulle : « Requires Tailoring (255) » en anglais,
+-- « Couture (255) requis » en français. Le motif vient du texte du client (ITEM_REQ_SKILL), pour tout ordre
+-- des mots ; les deux formes connues servent de repli.
 local TOOLTIP_INFO = { SetItemByID = "GetItemByID", SetMerchantItem = "GetMerchantItem" }
 local scanTip
 local loggedMisses = 0
 
-local function MatchReq(text)
-    if not text or text:sub(1, #REQ_PREFIX) ~= REQ_PREFIX then return nil end
-    local skill, level = text:sub(#REQ_PREFIX + 1):match("^(.-)%s*%((%d+)%)$")
-    return tonumber(level), skill
+local function FormatToPattern(fmt)
+    local p = fmt:gsub("%%%d?%$?s", "\1"):gsub("%%%d?%$?d", "\2")
+    p = p:gsub("([%^%$%(%)%.%[%]%*%+%-%?%%])", "%%%1")
+    return "^" .. p:gsub("\1", "(.-)"):gsub("\2", "(%%d+)") .. "$"
 end
+Data.FormatToPattern = FormatToPattern
+
+local REQ_PATTERNS = { "^Requires (.+)$", "^Requiert (.+)$", "^(.-) requis$" }
+if type(ITEM_REQ_SKILL) == "string" then table.insert(REQ_PATTERNS, 1, FormatToPattern(ITEM_REQ_SKILL)) end
+
+local function MatchReq(text)
+    if type(text) ~= "string" then return nil end
+    text = strtrim(text)
+    for _, pattern in ipairs(REQ_PATTERNS) do
+        local a, b = text:match(pattern)
+        if a then
+            local skill, level = a, b
+            if not tonumber(level) then skill, level = a:match("^(.-)%s*%((%d+)%)$") end
+            if tonumber(level) then return tonumber(level), skill end
+        end
+    end
+end
+Data.MatchReq = MatchReq
 
 local function TooltipLines(setter, ...)
     local lines = {}

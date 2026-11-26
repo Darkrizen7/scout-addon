@@ -93,6 +93,7 @@ end
 
 ns.UI.RegisterTab({
     name = "Métiers",
+    help = "Les recettes à apprendre pour fabriquer et revendre, classées par bénéfice.",
     build = function(toolbar, content)
         local B = ns.UI.Button
         buttons.prof = B(toolbar, 140, "", function() profIndex = profIndex + 1 ns.UI.RefreshAll() end,

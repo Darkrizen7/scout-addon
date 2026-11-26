@@ -54,6 +54,7 @@ end
 
 ns.UI.RegisterTab({
     name = "Équipement",
+    help = "Les meilleurs achats pour ta classe et ton niveau, classés par gain de stats pour le prix.",
     build = function(toolbar, content)
         local db = ns.db.equip
         local B = ns.UI.Button

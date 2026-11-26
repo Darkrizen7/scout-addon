@@ -40,6 +40,40 @@ end
 
 function Prices.History(id) return ns.db.market.hist[id] or {} end
 
+-- Prix par jour envoyés par scout-rs (History.lua, format 1) : { [jour] = cuivre }, ou nil sans historique.
+local function Today()
+    local t = date("*t")
+    return math.floor(time({ year = t.year, month = t.month, day = t.day, hour = 12 }) / 86400)
+end
+
+function Prices.Daily(id)
+    local h = ScoutHistory
+    local s = h and h.format == 1 and h.prices and h.prices[id]
+    if not s then return nil end
+    local days, day = {}, h.first_day
+    for field in (s .. ","):gmatch("([^,]*),") do
+        local p = tonumber(field)
+        if p then days[day] = p end
+        day = day + 1
+    end
+    return days
+end
+
+-- Prix habituel : médiane des prix par jour des `n` derniers jours (aujourd'hui compris), nil sans relevé.
+function Prices.Usual(id, n)
+    local days = Prices.Daily(id)
+    if not days then return nil end
+    local list, today = {}, Today()
+    for d = today - n + 1, today do
+        if days[d] then table.insert(list, days[d]) end
+    end
+    local k = #list
+    if k == 0 then return nil end
+    table.sort(list)
+    if k % 2 == 1 then return list[(k + 1) / 2] end
+    return math.floor((list[k / 2] + list[k / 2 + 1]) / 2)
+end
+
 function Prices.VendorBuy(id) return ns.db.vendor[id] or VENDOR_SEED[id] end
 
 -- Prix de revente au marchand ; négatif dans la base de butin = lié quand ramassé.

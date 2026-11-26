@@ -21,6 +21,19 @@ end
 
 local function Number(n) return n >= 100 and ("%d"):format(n) or ("%.1f"):format(n) end
 
+-- Prix demandé au-delà de +30 % de la médiane des 7 derniers jours : signalé, le classement ne change pas.
+local USUAL_DAYS, OVERPRICED = 7, 0.30
+
+local function Usual(d)
+    if d.usual == nil then d.usual = ns.Prices.Usual(d.browse.itemKey.itemID, USUAL_DAYS) or false end
+    return d.usual or nil
+end
+
+local function Overpriced(d)
+    local u = Usual(d)
+    return u ~= nil and u > 0 and d.price > u * (1 + OVERPRICED)
+end
+
 local COLUMNS = {
     { key = "name", title = "Objet", width = 230, ascending = true, text = function(d)
         local r, g, b = (C_Item.GetItemQualityColor or GetItemQualityColor)(d.quality)
@@ -28,7 +41,10 @@ local COLUMNS = {
     end },
     { key = "slot", title = "Slot", width = 90, ascending = true, text = function(d) return d.slot end },
     { key = "gain", title = "Gain", width = 60, justify = "RIGHT", text = function(d) return Number(d.gain) end },
-    { key = "price", title = "Prix", width = 100, justify = "RIGHT", ascending = true, text = function(d) return ns.Money(d.price) end },
+    { key = "price", title = "Prix", width = 100, justify = "RIGHT", ascending = true, text = function(d)
+        if Overpriced(d) then return ns.Money(d.price), 1, 0.3, 0.3 end
+        return ns.Money(d.price)
+    end },
     { key = "ratio", title = "Gain/po", width = 70, justify = "RIGHT", text = function(d) return Number(d.ratio) end },
 }
 
@@ -40,6 +56,11 @@ local function OnEnter(row, d)
     if d.stepGain then
         GameTooltip:AddLine(("+%.1f de gain pour %s de plus que l'option moins chère")
             :format(d.stepGain, ns.Money(d.stepPrice)), 1, 0.82, 0)
+    end
+    if Overpriced(d) then
+        local u = Usual(d)
+        GameTooltip:AddLine(("Prix habituel : %s (médiane %d j), +%d %%")
+            :format(ns.Money(u), USUAL_DAYS, math.floor((d.price / u - 1) * 100 + 0.5)), 1, 0.3, 0.3)
     end
     GameTooltip:AddLine("Clic : ouvrir la page d'achat", 0.7, 0.7, 0.7)
     GameTooltip:Show()

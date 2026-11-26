@@ -88,10 +88,15 @@ local function OnEnter(row, d)
     end
     if d.repay then GT:AddLine(("Remboursé après %d craft(s)"):format(d.repay), 0.4, 1, 0.4) end
     GT:AddLine("Clic : chercher l'objet à l'HdV", 0.7, 0.7, 0.7)
+    GT:AddLine("Maj-clic : courbe de prix (30 j)", 0.7, 0.7, 0.7)
     GT:Show()
 end
 
 local function OnClick(_, d)
+    if IsShiftKeyDown() then
+        ns.PriceChart.Show(d.recipe.out, d.name)
+        return
+    end
     local bar = AuctionHouseFrame and AuctionHouseFrame:IsShown() and AuctionHouseFrame.SearchBar
     if bar then
         bar:SetSearchText(d.name)

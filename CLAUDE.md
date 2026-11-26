@@ -101,7 +101,7 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ### Prix des 30 derniers jours (`History.lua`, `ScoutHistory`)
 - Fichier **écrit par scout-rs** (une fois par jour, gitignoré), chargé en premier par le `.toc` ; absent si l'outil
   n'a rien écrit : `ScoutHistory` peut être `nil`. Lecture seule : `Prices.Daily(id)` (prix par jour) et
-  `Prices.Usual(id, n)` (médiane des `n` derniers jours) ; l'onglet Équipement met en rouge un prix > +30 % de la médiane 7 j.
+  `Prices.Usual(id, n)` (médiane des `n` derniers jours), `Prices.Today()` (jour courant) ; `UI/PriceChart.lua` (`ns.PriceChart.Show(id, nom)` / `Hide()`) dessine la courbe 30 j dans un panneau collé à `ScoutFrame`, ouvert par Maj-clic sur une ligne Équipement ou Métiers ; l'onglet Équipement met en rouge un prix > +30 % de la médiane 7 j.
 - Contrat (format 1) : `{ format = 1, generated = <Unix>, first_day = <jours depuis 1970-01-01>, prices = { [itemId] = "120,,118,121" } }`
   (prix en cuivre par unité, un par jour depuis `first_day`, champ vide = pas de relevé). Aujourd'hui :
   `local t = date("*t"); local today = math.floor(time{year=t.year, month=t.month, day=t.day, hour=12} / 86400)`.

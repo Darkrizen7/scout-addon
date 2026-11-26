@@ -63,11 +63,16 @@ local function OnEnter(row, d)
             :format(ns.Money(u), USUAL_DAYS, math.floor((d.price / u - 1) * 100 + 0.5)), 1, 0.3, 0.3)
     end
     GameTooltip:AddLine("Clic : ouvrir la page d'achat", 0.7, 0.7, 0.7)
+    GameTooltip:AddLine("Maj-clic : courbe de prix (30 j)", 0.7, 0.7, 0.7)
     GameTooltip:Show()
     if GameTooltip_ShowCompareItem then GameTooltip_ShowCompareItem(GameTooltip) end
 end
 
 local function OnClick(_, d)
+    if IsShiftKeyDown() then
+        ns.PriceChart.Show(d.browse.itemKey.itemID, d.name)
+        return
+    end
     if AuctionHouseFrame and AuctionHouseFrame:IsShown() and AuctionHouseFrame.SelectBrowseResult then
         AuctionHouseFrame:SelectBrowseResult(d.browse)
     end

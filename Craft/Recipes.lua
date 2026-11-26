@@ -34,7 +34,7 @@ function Recipes.Capture()
 
     local store = ns.db.craft.recipes[line] or {}
     ns.db.craft.recipes[line] = store
-    local known = {}
+    local known, diff = {}, {}
     local count, learned = 0, 0
     for _, id in ipairs(T.GetAllRecipeIDs() or {}) do
         local info = T.GetRecipeInfo(id)
@@ -51,11 +51,15 @@ function Recipes.Capture()
             if store[id] then
                 count = count + 1
                 if info.learned then known[id] = true learned = learned + 1 end
+                diff[id] = info.relativeDifficulty
             end
         end
     end
     -- Remplace la liste des recettes connues de ce métier pour ce personnage.
     for id in pairs(store) do ns.char.known[id] = known[id] end
+    -- Couleur donnée par le jeu (chance de gagner un point), valable tant que le niveau ne bouge pas.
+    ns.char.diff = ns.char.diff or {}
+    ns.char.diff[line] = { rank = prof.skillLevel, ids = diff }
     ns.Log(("Recettes %s : %d (dont %d apprises), compétence %d/%d"):format(
         prof.professionName, count, learned, prof.skillLevel or 0, prof.maxSkillLevel or 0))
     if ns.UI then ns.UI.RefreshAll() end

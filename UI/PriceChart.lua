@@ -7,9 +7,6 @@ local DAYS = 30
 local W, H = 360, 250
 local CX, CY, CW, CH = 70, -40, 270, 110 -- zone de la courbe (depuis le coin haut gauche du panneau)
 
-local frame
-local segs, dots = {}, {}
-local texts = {}
 
 -- Calcul pur : points { jour, prix } de la fenêtre, min, médiane, max (nil sans relevé).
 function PriceChart.Compute(days, today)
@@ -29,89 +26,91 @@ function PriceChart.Compute(days, today)
     return list, sorted[1], math.floor(med), sorted[k]
 end
 
-local function Fs(key, point, x, y, justify)
-    local f = texts[key]
+-- Un « canevas » regroupe le cadre et les éléments dessinés (segments, points, textes).
+local Canvas = {}
+Canvas.__index = Canvas
+
+function Canvas:Fs(key, point, x, y, justify)
+    local f = self.texts[key]
     if not f then
-        f = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        texts[key] = f
+        f = self.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        self.texts[key] = f
     end
     f:ClearAllPoints()
-    f:SetPoint(point, frame, "TOPLEFT", x, y)
+    f:SetPoint(point, self.frame, "TOPLEFT", x, y)
     f:SetJustifyH(justify or "LEFT")
+    f:SetTextColor(1, 1, 1)
     f:Show()
     return f
 end
 
-local function Segment(i)
-    if not segs[i] then
-        local l = frame:CreateLine(nil, "ARTWORK")
+function Canvas:Segment(i)
+    if not self.segs[i] then
+        local l = self.frame:CreateLine(nil, "ARTWORK")
         l:SetThickness(2)
         l:SetColorTexture(1, 0.82, 0.2, 1)
-        segs[i] = l
+        self.segs[i] = l
     end
-    return segs[i]
+    return self.segs[i]
 end
 
-local function Dot(i)
-    if not dots[i] then
-        local t = frame:CreateTexture(nil, "ARTWORK")
+function Canvas:Dot(i)
+    if not self.dots[i] then
+        local t = self.frame:CreateTexture(nil, "ARTWORK")
         t:SetSize(3, 3)
         t:SetColorTexture(1, 0.82, 0.2, 1)
-        dots[i] = t
+        self.dots[i] = t
     end
-    return dots[i]
+    return self.dots[i]
 end
 
-local function Create()
-    -- Enfant de ScoutFrame : se ferme avec elle.
-    frame = CreateFrame("Frame", "ScoutPriceChart", ScoutFrame, "BasicFrameTemplateWithInset")
-    frame:SetSize(W, H)
-    frame:SetFrameStrata("HIGH")
-    frame:Hide()
-    tinsert(UISpecialFrames, "ScoutPriceChart")
-    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetPoint("TOP", 0, -5)
-    frame.title:SetPoint("LEFT", 30, 0)
-    frame.title:SetPoint("RIGHT", -30, 0)
-    frame.title:SetWordWrap(false)
-    frame.current = frame:CreateLine(nil, "OVERLAY")
-    frame.current:SetThickness(1)
-    frame.current:SetColorTexture(0.4, 0.8, 1, 0.9)
-    frame.bg = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    frame.bg:SetColorTexture(0, 0, 0, 0.35)
-    frame.bg:SetPoint("TOPLEFT", CX, CY)
-    frame.bg:SetSize(CW, CH)
+-- Crée un canevas dans `frame` (titre, repère du prix actuel, fond de la courbe).
+local function NewCanvas(frame, titleY)
+    local c = setmetatable({ frame = frame, segs = {}, dots = {}, texts = {} }, Canvas)
+    c.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    c.title:SetPoint("TOP", 0, titleY)
+    c.title:SetPoint("LEFT", 30, 0)
+    c.title:SetPoint("RIGHT", -30, 0)
+    c.title:SetWordWrap(false)
+    c.current = frame:CreateLine(nil, "OVERLAY")
+    c.current:SetThickness(1)
+    c.current:SetColorTexture(0.4, 0.8, 1, 0.9)
+    c.bg = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    c.bg:SetColorTexture(0, 0, 0, 0.35)
+    c.bg:SetPoint("TOPLEFT", CX, CY)
+    c.bg:SetSize(CW, CH)
+    return c
 end
 
-local function HideAll()
-    for _, s in ipairs(segs) do s:Hide() end
-    for _, s in ipairs(dots) do s:Hide() end
-    for _, f in pairs(texts) do f:Hide() end
-    frame.current:Hide()
+function Canvas:HideAll()
+    for _, s in ipairs(self.segs) do s:Hide() end
+    for _, s in ipairs(self.dots) do s:Hide() end
+    for _, f in pairs(self.texts) do f:Hide() end
+    self.current:Hide()
+    self.bg:Hide()
+    self.title:SetText("")
 end
 
-function PriceChart.Hide() if frame then frame:Hide() end end
-
-function PriceChart.Show(itemID, name)
+-- Dessine la courbe 30 j de l'objet ; sans objet, le canevas reste vide.
+function Canvas:Draw(itemID, name)
+    self:HideAll()
     if not itemID then return end
-    if not frame then Create() end
-    HideAll()
-    frame:ClearAllPoints()
-    frame:SetPoint("TOPLEFT", ScoutFrame, "TOPRIGHT", 0, 0)
+    local frame = self.frame
     if not name then name = C_Item.GetItemInfo(itemID) end
-    frame.title:SetText(name or ("Objet " .. itemID))
+    self.title:SetText(name or ("Objet " .. itemID))
 
     local today = ns.Prices.Today()
     local list, lo, med, hi = PriceChart.Compute(ns.Prices.Daily(itemID), today)
-    frame:Show()
+    local current = ns.Prices.AH(itemID)
     if not list then
-        frame.bg:Hide()
-        Fs("empty", "TOPLEFT", 20, -80):SetText("Pas d'historique : ouvre l'appli Scout pour l'envoyer")
+        if current and current > 0 then
+            self:Fs("last", "TOPLEFT", 20, -60):SetText("Dernier prix scanné : " .. ns.Money(current))
+        end
+        self:Fs("empty", "TOPLEFT", 20, -80):SetText("Pas d'historique : ouvre l'appli Scout pour l'envoyer")
         return
     end
-    frame.bg:Show()
+    self.bg:Show()
 
-    local current = ns.Prices.AH(itemID)
     local top, bottom = hi, lo
     if top == bottom then top, bottom = hi * 1.1, lo * 0.9 end
     local function X(day) return CX + (day - (today - DAYS + 1)) / (DAYS - 1) * CW end
@@ -122,7 +121,7 @@ function PriceChart.Show(itemID, name)
         local prev, nxt = list[i - 1], list[i + 1]
         if nxt and nxt[1] == pt[1] + 1 then
             nseg = nseg + 1
-            local l = Segment(nseg)
+            local l = self:Segment(nseg)
             -- ancrage au coin haut gauche : Y négatif vers le bas
             l:SetStartPoint("TOPLEFT", frame, X(pt[1]), Y(pt[2]))
             l:SetEndPoint("TOPLEFT", frame, X(nxt[1]), Y(nxt[2]))
@@ -130,7 +129,7 @@ function PriceChart.Show(itemID, name)
         end
         if not (prev and prev[1] == pt[1] - 1) and not (nxt and nxt[1] == pt[1] + 1) then
             ndot = ndot + 1
-            local t = Dot(ndot)
+            local t = self:Dot(ndot)
             t:ClearAllPoints()
             t:SetPoint("CENTER", frame, "TOPLEFT", X(pt[1]), Y(pt[2]))
             t:Show()
@@ -140,18 +139,49 @@ function PriceChart.Show(itemID, name)
     -- Repère du prix actuel, borné à la zone
     if current and current > 0 then
         local y = math.max(CY - CH, math.min(CY, Y(current)))
-        frame.current:SetStartPoint("TOPLEFT", frame, CX, y)
-        frame.current:SetEndPoint("TOPLEFT", frame, CX + CW, y)
-        frame.current:Show()
-        local t = Fs("cur", "TOPLEFT", 14, CY - CH - 34)
+        self.current:SetStartPoint("TOPLEFT", frame, CX, y)
+        self.current:SetEndPoint("TOPLEFT", frame, CX + CW, y)
+        self.current:Show()
+        local t = self:Fs("cur", "TOPLEFT", 14, CY - CH - 34)
         t:SetText("Actuel : " .. ns.Money(current))
         t:SetTextColor(0.4, 0.8, 1)
     end
 
-    Fs("hi", "TOPRIGHT", CX - 4, CY - 2, "RIGHT"):SetText(ns.Money(hi))
-    Fs("lo", "BOTTOMRIGHT", CX - 4, CY - CH + 2, "RIGHT"):SetText(ns.Money(lo))
-    Fs("d1", "TOPLEFT", CX, CY - CH - 4):SetText(date("%d/%m", (today - DAYS + 1) * 86400 + 43200))
-    Fs("d2", "TOPRIGHT", CX + CW, CY - CH - 4, "RIGHT"):SetText(date("%d/%m", today * 86400 + 43200))
-    Fs("stats", "TOPLEFT", 14, CY - CH - 20):SetText(
+    self:Fs("hi", "TOPRIGHT", CX - 4, CY - 2, "RIGHT"):SetText(ns.Money(hi))
+    self:Fs("lo", "BOTTOMRIGHT", CX - 4, CY - CH + 2, "RIGHT"):SetText(ns.Money(lo))
+    self:Fs("d1", "TOPLEFT", CX, CY - CH - 4):SetText(date("%d/%m", (today - DAYS + 1) * 86400 + 43200))
+    self:Fs("d2", "TOPRIGHT", CX + CW, CY - CH - 4, "RIGHT"):SetText(date("%d/%m", today * 86400 + 43200))
+    self:Fs("stats", "TOPLEFT", 14, CY - CH - 20):SetText(
         ("Min %s · Médiane %s · Max %s"):format(ns.Money(lo), ns.Money(med), ns.Money(hi)))
+end
+
+-- Canevas intégré à un cadre existant (onglet Objets) ; renvoie l'objet avec :Draw(itemID, name).
+function PriceChart.Embed(parent)
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetSize(W, H)
+    return NewCanvas(f, -12), f
+end
+
+-- Panneau flottant collé à ScoutFrame (Maj-clic des onglets Équipement et Métiers).
+local frame, canvas
+
+local function Create()
+    -- Enfant de ScoutFrame : se ferme avec elle.
+    frame = CreateFrame("Frame", "ScoutPriceChart", ScoutFrame, "BasicFrameTemplateWithInset")
+    frame:SetSize(W, H)
+    frame:SetFrameStrata("HIGH")
+    frame:Hide()
+    tinsert(UISpecialFrames, "ScoutPriceChart")
+    canvas = NewCanvas(frame, -5)
+end
+
+function PriceChart.Hide() if frame then frame:Hide() end end
+
+function PriceChart.Show(itemID, name)
+    if not itemID then return end
+    if not frame then Create() end
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", ScoutFrame, "TOPRIGHT", 0, 0)
+    frame:Show()
+    canvas:Draw(itemID, name)
 end

@@ -37,4 +37,5 @@ UI\Window.lua
 UI\PriceChart.lua
 UI\EquipTab.lua
 UI\CraftTab.lua
+UI\ItemsTab.lua
 UI\MinimapButton.lua

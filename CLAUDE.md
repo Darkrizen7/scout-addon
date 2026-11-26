@@ -1,7 +1,7 @@
 # Scout (addon WoW Forever)
 
 Addon pour **WoW Forever** : client moderne (`## Interface: 16001`, API `C_AuctionHouse`, `C_Item`, `C_TradeSkillUI`)
-sur du contenu Classic (objets, recettes, butin). Une fenêtre `/scout` à onglets (Équipement, Métiers),
+sur du contenu Classic (objets, recettes, butin). Une fenêtre `/scout` à onglets (Équipement, Métiers, Objets),
 collée à l'HdV, et **un seul scan de l'HdV** partagé par tous. L'historique des prix est étudié hors jeu
 par l'outil Rust compagnon `../scout-rs` (voir son `CLAUDE.md`).
 
@@ -42,7 +42,7 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 | `Equip/` | Poids de stats, gain vs équipé (rien n'est proposé pour un emplacement dont l'objet porté a des stats inconnues, ni pour un objet déjà porté ; doublon d'anneau/bijou/arme seulement s'il n'est pas « Unique »), analyse des objets du scan. |
 | `Craft/` | Recettes (fenêtre de métier), sources d'apprentissage, rentabilité. |
 | `Farm/` | Pas d'onglet : `Loot.lua` **généré** (`tools/build_loot.py`, ne pas éditer ; objets de butin suivis au scan, prix marchand), butin observé exporté vers scout-rs. |
-| `UI/` | Fenêtre à onglets (texte d'aide : champ `help` de `UI.RegisterTab`), listes, bouton de minimap ; boutons « Scanner l'HdV » / « Rapide » affichés seulement HdV ouvert, orange pendant un scan, verts si le dernier date de moins de 20 min. |
+| `UI/` | Fenêtre à onglets (Équipement, Métiers, Objets : `ItemsTab.lua`, recherche + courbe 30 j, objet choisi aussi par un clic dans les résultats de l'HdV ; texte d'aide : champ `help` de `UI.RegisterTab`), listes, bouton de minimap ; boutons « Scanner l'HdV » / « Rapide » affichés seulement HdV ouvert, orange pendant un scan, verts si le dernier date de moins de 20 min. |
 | `tools/` | `export.lua` (CSV pour l'outil Rust), `migrate.lua` (anciens addons), `build_loot.py`. |
 
 ### Scan de l'HdV (`Scan.lua`)
@@ -101,7 +101,7 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ### Prix des 30 derniers jours (`History.lua`, `ScoutHistory`)
 - Fichier **écrit par scout-rs** (une fois par jour, gitignoré), chargé en premier par le `.toc` ; absent si l'outil
   n'a rien écrit : `ScoutHistory` peut être `nil`. Lecture seule : `Prices.Daily(id)` (prix par jour) et
-  `Prices.Usual(id, n)` (médiane des `n` derniers jours), `Prices.Today()` (jour courant) ; `UI/PriceChart.lua` (`ns.PriceChart.Show(id, nom)` / `Hide()`) dessine la courbe 30 j dans un panneau collé à `ScoutFrame`, ouvert par Maj-clic sur une ligne Équipement ou Métiers ; l'onglet Équipement met en rouge un prix > +30 % de la médiane 7 j.
+  `Prices.Usual(id, n)` (médiane des `n` derniers jours), `Prices.Today()` (jour courant) ; `UI/PriceChart.lua` (`ns.PriceChart.Show(id, nom)` / `Hide()`, ou `Embed(parent)` pour l'onglet Objets) dessine la courbe 30 j dans un panneau collé à `ScoutFrame`, ouvert par Maj-clic sur une ligne Équipement ou Métiers, et dans l'onglet Objets (liste des objets de `market.names`, recherche sans accents `ns.Fold`) ; l'onglet Équipement met en rouge un prix > +30 % de la médiane 7 j.
 - Contrat (format 1) : `{ format = 1, generated = <Unix>, first_day = <jours depuis 1970-01-01>, prices = { [itemId] = "120,,118,121" } }`
   (prix en cuivre par unité, un par jour depuis `first_day`, champ vide = pas de relevé). Aujourd'hui :
   `local t = date("*t"); local today = math.floor(time{year=t.year, month=t.month, day=t.day, hour=12} / 86400)`.

@@ -28,6 +28,11 @@ local function Button(parent, width, text, onClick, tip)
 end
 UI.Button = Button
 
+-- Vrai si la fenêtre est affichée sur l'onglet de ce nom.
+function UI.IsCurrent(name)
+    return frame ~= nil and frame:IsShown() and current ~= nil and tabs[current] ~= nil and tabs[current].name == name
+end
+
 function UI.SetStatus(text)
     if frame then frame.status:SetText(text) end
 end

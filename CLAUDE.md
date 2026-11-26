@@ -98,6 +98,14 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
   `PLAYER_REGEN_ENABLED`. Enregistrée à `PLAYER_LOGIN` **seulement si TomTom n'a pas déjà `/way`** (TomTom se charge
   après Scout). Action tapée par le joueur, rien d'automatique.
 
+### Prix des 30 derniers jours (`History.lua`, `ScoutHistory`)
+- Fichier **écrit par scout-rs** (une fois par jour, gitignoré), chargé en premier par le `.toc` ; absent si l'outil
+  n'a rien écrit : `ScoutHistory` peut être `nil`. Lecture seule, aucun code ne l'utilise encore.
+- Contrat (format 1) : `{ format = 1, generated = <Unix>, first_day = <jours depuis 1970-01-01>, prices = { [itemId] = "120,,118,121" } }`
+  (prix en cuivre par unité, un par jour depuis `first_day`, champ vide = pas de relevé). Aujourd'hui :
+  `local t = date("*t"); local today = math.floor(time{year=t.year, month=t.month, day=t.day, hour=12} / 86400)`.
+- Détail : `docs/sources.md` de scout-rs (« Prix envoyés à l'addon »).
+
 ## Pièges connus
 - **`a and b or c` en Lua** : si `b` peut être `nil`/`false`, l'expression renvoie `c`. C'est ce qui a fait comparer
   le premier scan rapide au scan complet. Écrire un `if` explicite.

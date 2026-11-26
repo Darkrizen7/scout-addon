@@ -11,6 +11,7 @@
 ## AddonCompartmentFuncOnEnter: Scout_CompartmentEnter
 ## AddonCompartmentFuncOnLeave: Scout_CompartmentLeave
 
+History.lua
 Core.lua
 Prices.lua
 Farm\Loot.lua

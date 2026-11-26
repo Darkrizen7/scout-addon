@@ -1,9 +1,9 @@
 ## Interface: 16001
 ## Title: Scout
-## Notes: Équipement à acheter, recettes à apprendre, où farmer : tout depuis l'HdV. /scout
+## Notes: Équipement à acheter, recettes à apprendre : tout depuis l'HdV. /scout
 ## Author: Darkrizen
 ## Version: 0.2.0
-## OptionalDeps: QuestieDB, Auctionator
+## OptionalDeps: Auctionator
 ## SavedVariables: ScoutDB
 ## X-License: MIT ; Farm/Loot.lua : GPL-3.0-or-later (dérivé de cmangos classic-db)
 ## IconTexture: Interface\Icons\INV_Misc_Spyglass_02
@@ -27,9 +27,7 @@ Craft\Recipes.lua
 Craft\Sources.lua
 Craft\Analysis.lua
 
-Farm\Value.lua
 Farm\Observed.lua
-Farm\List.lua
 
 Scan.lua
 
@@ -37,5 +35,4 @@ UI\ListView.lua
 UI\Window.lua
 UI\EquipTab.lua
 UI\CraftTab.lua
-UI\FarmTab.lua
 UI\MinimapButton.lua

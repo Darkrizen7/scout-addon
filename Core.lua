@@ -3,7 +3,7 @@
 -- ScoutDB :
 --   equip  = { lookahead, budget, bestOnly, weights, roles }      onglet Équipement
 --   craft  = { recipes, trainer, patterns, chars }                 onglet Métiers
---   farm   = { obs, seen }                                         onglet Farm (butin observé, format dans Farm/Observed.lua)
+--   farm   = { obs, seen }                                         butin observé, exporté vers scout-rs (format dans Farm/Observed.lua)
 --   market = { t, n, prices[itemID] = { p, q }, hist[itemID] = {...}, names[itemID] } scan HdV partagé
 --            (n / nq, t / tq = objets vus et heure du dernier scan complet / rapide,
 --             names = nom de tout objet vu, class / classNames / subclassNames = sa catégorie)

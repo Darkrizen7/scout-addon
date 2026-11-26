@@ -3,9 +3,10 @@ local _, ns = ...
 local UI = {}
 ns.UI = UI
 
-local tabs = {}        -- { name, build(toolbar, content), refresh(), status() }
+local tabs = {}        -- { name, help, build(toolbar, content), refresh(), status() }
 local frame, current, scanButton, quickButton, ticker
 local autoShown = false
+local ahOpen = false   -- boutons de scan visibles seulement HdV ouvert
 local RECENT_SCAN = 20 * 60   -- un scan plus récent que ça : bouton vert
 
 function UI.RegisterTab(tab) table.insert(tabs, tab) end
@@ -39,6 +40,7 @@ local function Select(index)
         tab.content:SetShown(i == current)
         tab.button:SetEnabled(i ~= current)   -- onglet actif = bouton grisé
     end
+    frame.help:SetText(tabs[current].help or "")
     UI.RefreshAll()
 end
 
@@ -65,6 +67,8 @@ end
 
 local function UpdateScanButton()
     if not (scanButton and quickButton) then return end
+    scanButton:SetShown(ahOpen)
+    quickButton:SetShown(ahOpen)
     local m, running, isQuick = ns.db.market, ns.Scan.IsRunning(), ns.Scan.IsQuick()
     PaintScanButton(scanButton, running and not isQuick, m.t, "Scanner l'HdV", "Scanné")
     -- Un scan complet couvre aussi l'artisanat.
@@ -87,7 +91,7 @@ end
 
 local function Create()
     frame = CreateFrame("Frame", "ScoutFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(760, 520)
+    frame:SetSize(760, 536)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -113,10 +117,10 @@ local function Create()
         tab.button:SetPoint("TOPLEFT", x, -28)
         x = x + 114
         tab.toolbar = CreateFrame("Frame", nil, frame)
-        tab.toolbar:SetPoint("TOPLEFT", 10, -54)
+        tab.toolbar:SetPoint("TOPLEFT", 10, -72)
         tab.toolbar:SetSize(560, 22)
         tab.content = CreateFrame("Frame", nil, frame)
-        tab.content:SetPoint("TOPLEFT", 10, -100)
+        tab.content:SetPoint("TOPLEFT", 10, -118)
         tab.content:SetPoint("BOTTOMRIGHT", -12, 10)
         tab.build(tab.toolbar, tab.content)
     end
@@ -131,9 +135,16 @@ local function Create()
     quickButton:SetPoint("RIGHT", scanButton, "LEFT", -4, 0)
 
     frame.status = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.status:SetPoint("TOPLEFT", 12, -82)
+    frame.status:SetPoint("TOPLEFT", 12, -100)
     frame.status:SetPoint("RIGHT", -12, 0)
     frame.status:SetJustifyH("LEFT")
+
+    -- Aide de l'onglet (champ help de RegisterTab), sous les boutons d'onglets.
+    frame.help = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.help:SetPoint("TOPLEFT", 12, -55)
+    frame.help:SetPoint("RIGHT", -12, 0)
+    frame.help:SetJustifyH("LEFT")
+    frame.help:SetTextColor(0.75, 0.75, 0.75)
 
     Select(ns.db.ui.tab or 1)
     StartTicker()   -- la fenêtre vient d'être créée visible : OnShow ne s'est pas déclenché
@@ -147,14 +158,18 @@ end
 
 -- Collée à l'HdV quand il s'ouvre, remise au centre (ou fermée) quand il se ferme.
 ns.On("AUCTION_HOUSE_SHOW", function()
+    ahOpen = true
     if not frame then Create() end
     if not frame:IsShown() then autoShown = true end
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPRIGHT", 4, 0)
     frame:Show()
+    UpdateScanButton()   -- fenêtre déjà ouverte : OnShow ne se déclenche pas
 end)
 ns.On("AUCTION_HOUSE_CLOSED", function()
+    ahOpen = false
     if not frame then return end
+    UpdateScanButton()
     frame:ClearAllPoints()
     frame:SetPoint("CENTER")
     if autoShown then frame:Hide() end

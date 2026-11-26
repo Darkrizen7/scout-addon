@@ -1,8 +1,8 @@
 # Scout (addon WoW Forever)
 
 Addon pour **WoW Forever** : client moderne (`## Interface: 16001`, API `C_AuctionHouse`, `C_Item`, `C_TradeSkillUI`)
-sur du contenu Classic (objets, recettes, butin). Une fenêtre `/scout` à trois onglets (Équipement, Métiers, Farm),
-collée à l'HdV, et **un seul scan de l'HdV** partagé par les trois. L'historique des prix est étudié hors jeu
+sur du contenu Classic (objets, recettes, butin). Une fenêtre `/scout` à onglets (Équipement, Métiers),
+collée à l'HdV, et **un seul scan de l'HdV** partagé par tous. L'historique des prix est étudié hors jeu
 par l'outil Rust compagnon `../scout-rs` (voir son `CLAUDE.md`).
 
 ## Façon de travailler
@@ -41,8 +41,8 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 | `Scan.lua` | Scan de l'HdV : complet ou rapide (artisanat), enregistrement des prix / historique / noms / catégories, garde-fous. |
 | `Equip/` | Poids de stats, gain vs équipé (rien n'est proposé pour un emplacement dont l'objet porté a des stats inconnues, ni pour un objet déjà porté ; doublon d'anneau/bijou/arme seulement s'il n'est pas « Unique »), analyse des objets du scan. |
 | `Craft/` | Recettes (fenêtre de métier), sources d'apprentissage, rentabilité. |
-| `Farm/` | Valeur par kill : `Loot.lua` **généré** (`tools/build_loot.py`, ne pas éditer), butin observé. |
-| `UI/` | Fenêtre à onglets, listes, bouton de minimap ; boutons « Scanner l'HdV » / « Rapide » orange pendant un scan, verts si le dernier date de moins de 20 min. |
+| `Farm/` | Pas d'onglet : `Loot.lua` **généré** (`tools/build_loot.py`, ne pas éditer ; objets de butin suivis au scan, prix marchand), butin observé exporté vers scout-rs. |
+| `UI/` | Fenêtre à onglets (texte d'aide : champ `help` de `UI.RegisterTab`), listes, bouton de minimap ; boutons « Scanner l'HdV » / « Rapide » affichés seulement HdV ouvert, orange pendant un scan, verts si le dernier date de moins de 20 min. |
 | `tools/` | `export.lua` (CSV pour l'outil Rust), `migrate.lua` (anciens addons), `build_loot.py`. |
 
 ### Scan de l'HdV (`Scan.lua`)

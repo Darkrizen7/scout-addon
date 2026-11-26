@@ -9,7 +9,7 @@
 --             names = nom de tout objet vu, class / classNames / subclassNames = sa catégorie)
 --   vendor = { [itemID] = prix marchand }                          vu chez les marchands
 --   merchants = { [npcID] = { name, zone, x, y, t, items = { [itemID] = { p = prix unitaire, l = stock limité } } } }
---   ui     = { tab }
+--   ui     = { tab, craftShow = { known, learn, high } }   (cases de l'onglet Métiers)
 --   log    = journal de la session (lisible sur disque après /reload)
 local ADDON, ns = ...
 
@@ -69,7 +69,7 @@ local DEFAULTS = {
     market = { prices = {}, hist = {}, names = {}, class = {}, classNames = {}, subclassNames = {} },
     vendor = {},
     merchants = {},
-    ui = { tab = 1 },
+    ui = { tab = 1, craftShow = { known = true, learn = true, high = false } },
 }
 
 local function Fill(target, defaults)

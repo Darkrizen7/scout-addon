@@ -6,7 +6,8 @@
 --   patterns[itemID] = { name, req }                        (patron vu chez un marchand ou à l'HdV)
 --   vendor[itemID] = prix unitaire en cuivre                 (vu chez un marchand)
 --   market = { t = date du scan, prices[itemID] = { p, q }, hist[itemID] = { {d, p, q}, ... } }
---   chars[clé] = { skills[skillLine] = { name, rank, max }, known[recipeID] = true }
+--   chars[clé] = { skills[skillLine] = { name, rank, max }, known[recipeID] = true,
+--                 diff[skillLine] = { rank, ids[recipeID] = Enum.TradeskillRelativeDifficulty } }
 local _, ns = ...
 local Data = {}
 ns.Data = Data

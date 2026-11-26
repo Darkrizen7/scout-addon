@@ -3,7 +3,7 @@ local _, ns = ...
 
 local SOURCE_TAG = { ["maître"] = "M", marchand = "V", HdV = "H" }
 local lv, buttons = nil, {}
-local modeIndex, profIndex = 1, 1
+local profIndex = 1
 local lastCount = 0
 
 local function Profession()
@@ -14,9 +14,9 @@ local function Profession()
 end
 
 local function ItemName(id)
-    local name, _, quality = C_Item.GetItemInfo(id)
+    local name = C_Item.GetItemInfo(id)
     if not name then C_Item.RequestLoadItemDataByID(id) end
-    return name, quality
+    return name
 end
 
 local function ProfitColor(v)
@@ -26,9 +26,11 @@ local function ProfitColor(v)
 end
 
 local COLUMNS = {
+    -- Couleur du jeu : chance de gagner un point (orange / jaune / vert / gris, rouge = niveau trop bas).
     { key = "name", title = "Objet fabriqué", width = 185, ascending = true, text = function(d)
-        local r, g, b = (C_Item.GetItemQualityColor or GetItemQualityColor)(d.quality)
-        return d.name, r, g, b
+        local c = d.color and ns.Analysis.COLORS[d.color]
+        if c then return d.name, c[1], c[2], c[3] end
+        return d.name, 1, 1, 1
     end },
     { key = "req", title = "Niv.", width = 32, justify = "RIGHT", ascending = true, text = function(d) return d.req and tostring(d.req) end },
     { key = "learnCost", title = "Apprendre", width = 95, justify = "RIGHT", ascending = true, text = function(d)
@@ -48,11 +50,17 @@ local COLUMNS = {
     { key = "supply", title = "En vente", width = 55, justify = "RIGHT", ascending = true, text = function(d) return tostring(d.supply) end },
 }
 
+local SKILL_TEXT = { red = "Niveau de métier insuffisant", orange = "Orange : gagne toujours un point",
+    yellow = "Jaune : gagne souvent un point", green = "Vert : gagne parfois un point",
+    grey = "Gris : ne fait plus monter le métier" }
+
 local function OnEnter(row, d)
     local GT = GameTooltip
     GT:SetOwner(row, "ANCHOR_RIGHT")
     GT:SetItemByID(d.recipe.out)
     GT:AddLine(" ")
+    local c = d.color and ns.Analysis.COLORS[d.color]
+    if c then GT:AddLine(SKILL_TEXT[d.color], c[1], c[2], c[3]) end
     if d.known then
         GT:AddLine("Recette connue", 0.4, 1, 0.4)
     elseif d.learn then
@@ -93,18 +101,35 @@ end
 
 ns.UI.RegisterTab({
     name = "Métiers",
-    help = "Les recettes à apprendre pour fabriquer et revendre, classées par bénéfice.",
+    help = "Coche ce que tu veux voir : les couleurs disent si la recette fait encore monter ton métier.",
     build = function(toolbar, content)
         local B = ns.UI.Button
         buttons.prof = B(toolbar, 140, "", function() profIndex = profIndex + 1 ns.UI.RefreshAll() end,
             "Changer de métier (ouvre la fenêtre d'un métier une fois pour qu'il apparaisse)")
         buttons.prof:SetPoint("LEFT")
-        buttons.mode = B(toolbar, 125, "", function()
-            modeIndex = modeIndex % #ns.Analysis.MODES + 1
-            ns.UI.RefreshAll()
-        end, "À apprendre : non apprises de ton niveau, source connue.\nBientôt : +25 points.\n"
-            .. "Connues : tes recettes.\nToutes : tout, même sans source connue.")
-        buttons.mode:SetPoint("LEFT", buttons.prof, "RIGHT", 4, 0)
+        local anchor = buttons.prof
+        for _, f in ipairs(ns.Analysis.FILTERS) do
+            local cb = CreateFrame("CheckButton", nil, toolbar, "UICheckButtonTemplate")
+            cb:SetSize(24, 24)
+            cb:SetPoint("LEFT", anchor, "RIGHT", anchor == buttons.prof and 6 or 2, 0)
+            local label = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            label:SetPoint("LEFT", cb, "RIGHT", 0, 1)
+            label:SetText(f.label)
+            cb:SetHitRectInsets(0, -label:GetStringWidth(), 0, 0)
+            cb:SetScript("OnClick", function(self)
+                ns.db.ui.craftShow[f.key] = self:GetChecked() and true or false
+                ns.UI.RefreshAll()
+            end)
+            cb:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+                GameTooltip:SetText(f.label, 1, 1, 1)
+                GameTooltip:AddLine(f.tip, nil, nil, nil, true)
+                GameTooltip:Show()
+            end)
+            cb:SetScript("OnLeave", GameTooltip_Hide)
+            buttons[f.key] = cb
+            anchor = label
+        end
         lv = ns.ListView.Create(content, {
             columns = COLUMNS, icon = function(d) return C_Item.GetItemIconByID(d.recipe.out) end,
             onEnter = OnEnter, onClick = OnClick, sortKey = "profit",
@@ -113,13 +138,12 @@ ns.UI.RegisterTab({
     end,
     refresh = function()
         local prof = Profession()
-        local mode = ns.Analysis.MODES[modeIndex]
-        buttons.mode:SetText(mode.label)
+        local show = ns.db.ui.craftShow
+        for _, f in ipairs(ns.Analysis.FILTERS) do buttons[f.key]:SetChecked(show[f.key] == true) end
         buttons.prof:SetText(prof and prof.name or "Aucun métier")
-        local rows = prof and ns.Analysis.Rows(prof.line, mode.key) or {}
+        local rows = prof and ns.Analysis.Rows(prof.line, show) or {}
         for _, row in ipairs(rows) do
-            local name, quality = ItemName(row.recipe.out)
-            row.name, row.quality = name or row.recipe.name, quality or 1
+            row.name = ItemName(row.recipe.out) or row.recipe.name
             row.learnCost = row.learn and row.learn.cost or (row.known and 0 or nil)
         end
         lastCount = #rows

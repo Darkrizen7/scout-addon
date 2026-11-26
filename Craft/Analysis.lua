@@ -4,13 +4,37 @@ local _, ns = ...
 local Analysis = {}
 ns.Analysis = Analysis
 
-Analysis.MODES = {
-    { key = "learnable", label = "À apprendre" },
-    { key = "soon", label = "Bientôt (+25)" },
-    { key = "known", label = "Connues" },
-    { key = "all", label = "Toutes" },
+-- Cases à cocher de l'onglet (combinables), choix gardé dans ns.db.ui.craftShow.
+Analysis.FILTERS = {
+    { key = "known", label = "Apprises", tip = "Tes recettes." },
+    { key = "learn", label = "À apprendre",
+      tip = "Pas apprises, de ton niveau, disponibles chez un maître, un marchand ou à l'HdV." },
+    { key = "high", label = "Trop haut", tip = "Pas encore accessibles : jusqu'à +25 points au-dessus de ton niveau." },
 }
 local SOON = 25
+
+-- Chance de gagner un point, comme dans le jeu (Enum.TradeskillRelativeDifficulty) ; « red » = niveau insuffisant.
+local DIFF = { [0] = "orange", [1] = "yellow", [2] = "green", [3] = "grey" }
+Analysis.COLORS = {
+    red = { 1, 0.1, 0.1 }, orange = { 1, 0.5, 0.25 }, yellow = { 1, 1, 0 },
+    green = { 0.25, 0.75, 0.25 }, grey = { 0.5, 0.5, 0.5 },
+}
+
+-- Couleur de la recette : celle du jeu si la fenêtre du métier a été ouverte à ce niveau, sinon estimée
+-- (Classic : jaune à mi-chemin entre le niveau requis et le gris, vert à mi-chemin entre jaune et gris).
+local function SkillColor(line, id, r, req, rank)
+    if req and rank < req then return "red" end
+    local d = ns.char.diff and ns.char.diff[line]
+    if d and d.rank == rank and DIFF[d.ids[id]] then return DIFF[d.ids[id]] end
+    local grey = r.trivial
+    if not grey or grey <= 0 then return nil end
+    if rank >= grey then return "grey" end
+    if not req then return nil end
+    local yellow = (req + grey) / 2
+    if rank < yellow then return "orange" end
+    if rank < (yellow + grey) / 2 then return "yellow" end
+    return "green"
+end
 
 local function ReagentCost(r)
     local total, missing = 0, {}
@@ -30,7 +54,7 @@ local function Trend(id)
     return (h[#h].q or 0) - sum / (#h - 1), #h
 end
 
-function Analysis.Row(line, id, r)
+function Analysis.Row(line, id, r, rank)
     local known = ns.char.known[id] == true
     local learn = not known and ns.Sources.Learn(line, r) or nil
     local cost, missing = ReagentCost(r)
@@ -45,25 +69,25 @@ function Analysis.Row(line, id, r)
         row.repay = math.ceil((learn.cost or 0) / row.profit)
     end
     row.trend, row.days = Trend(r.out)
+    row.color = SkillColor(line, id, r, row.req, rank or 0)
     return row
 end
 
-local function Keep(row, mode, rank)
-    if mode == "known" then return row.known end
-    if mode == "all" then return true end
-    -- Niveau requis inconnu : on ne peut pas savoir si c'est apprenable, donc seulement dans « Toutes ».
-    if row.known or not row.learn or not row.req then return false end
-    if mode == "learnable" then return row.req <= rank end
-    return row.req <= rank + SOON
+-- Niveau requis inconnu : on ne peut pas savoir si c'est apprenable, la recette n'est dans aucune case.
+local function Keep(row, show, rank)
+    if row.known then return show.known end
+    if not row.learn or not row.req then return false end
+    if row.req <= rank then return show.learn end
+    return show.high and row.req <= rank + SOON
 end
 
-function Analysis.Rows(line, mode)
+function Analysis.Rows(line, show)
     local skill = ns.char.skills[line]
     local rank = skill and skill.rank or 0
     local rows = {}
     for id, r in pairs(ns.db.craft.recipes[line] or {}) do
-        local row = Analysis.Row(line, id, r)
-        if Keep(row, mode, rank) then rows[#rows + 1] = row end
+        local row = Analysis.Row(line, id, r, rank)
+        if Keep(row, show, rank) then rows[#rows + 1] = row end
     end
     return rows
 end

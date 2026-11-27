@@ -132,8 +132,9 @@ Ordre de chargement : celui du `.toc`. Namespace partagé `ns` (`local _, ns = .
 ## Tickets (pman)
 
 <!-- pman init: start (managed by `pman init`) -->
-- pman workspace: `default` (`PMAN_WORKSPACE`, set by `.claude/settings.json`); server http://127.0.0.1:8090.
-- Projects: none (`pman init --project KEY`).
+- pman workspace: `wow` (`PMAN_WORKSPACE`, set by `.claude/settings.json`); server http://127.0.0.1:8090.
+- Projects: `ADDON`.
+- Ticket link: http://127.0.0.1:8090/wow/projects/ADDON/issues/ADDON-42
 - Workflow: skill `/pman` (`.claude/skills/pman/`) and agent `dev` (`.claude/agents/dev.md`), installed by `pman init`; CLI: `pman --help`.
 <!-- pman init: end -->
 - Propre à l'addon (hors du bloc géré) :

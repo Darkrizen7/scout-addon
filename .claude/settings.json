@@ -1,5 +1,5 @@
 {
   "env": {
-    "PMAN_WORKSPACE": "wow"
+    "PMAN_WORKSPACE": "default"
   }
 }
